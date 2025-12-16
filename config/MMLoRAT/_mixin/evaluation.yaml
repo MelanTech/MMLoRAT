@@ -9,3 +9,6 @@
   value: "test"
 - path: "run.num_epochs"
   value: 1
+- path: "model.eval"
+  action: "replace"
+  value: true

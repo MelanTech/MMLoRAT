@@ -49,6 +49,13 @@ def main(runtime_vars):
 
     config = load_config(runtime_vars)
 
+    # Zekai Shao: add eval config and weight path
+    if config['model']['eval']:
+        if runtime_vars.weight_path:
+            config['model']['weight_path'] = runtime_vars.weight_path
+        else:
+            config['model']['eval'] = False
+
     context = init_global_context(runtime_vars, config)
 
     with context:

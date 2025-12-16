@@ -29,8 +29,6 @@ def setup_arg_parser():
 
     parser.add_argument('--run_id', type=str)
 
-    parser.add_argument('--eval', action='store_true', help='enable it when evaluating model alone')
-
     parser.add_argument('--master_address', type=str, default='127.0.0.1')
     parser.add_argument('--distributed_node_rank', type=int, default=0)
     parser.add_argument('--distributed_nnodes', type=int, default=1)

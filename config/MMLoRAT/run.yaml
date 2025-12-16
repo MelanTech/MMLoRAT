@@ -28,39 +28,6 @@ task:
       wandb:
         with_epoch: true
 
-#  val:
-#    is_train: false
-#    data: "val"
-#    runner: "train"
-#    epoch_trigger:
-#      last: true
-#      interval: 2
-#    logging:
-#      interval: 10
-#      metric_prefix: "val_"
-#      local:
-#        header: "Val"
-#        auto_summary: true
-#      wandb:
-#        per_iteration_logging:
-#          enabled: false
-#        per_epoch_logging:
-#          enabled: true
-#          summary_method: "mean"
-
-#  test:
-#    is_train: false
-#    data: "test"
-#    runner: "test"
-#    epoch_trigger:
-#      last: true
-#      interval: 10
-#    logging:
-#      interval: 100
-#      metric_prefix: "test_"
-#      local:
-#        header: "Test"
-
   eval:
     is_train: false
     data: "eval"
@@ -139,55 +106,6 @@ data:
         - type: "template_foreground_indicating_mask_generation"
 
       visualize: false
-#  val:
-#    global_batch_size: 128
-#    num_io_threads: !const "num_io_threads_per_worker"
-#    num_workers: !const "num_val_workers"
-#
-#    type: "siamese_tracker_train"
-#
-#    source:
-#      type: "dataset"
-#      parameters:
-#        !include "../_dataset/val-lasher.yaml"
-#
-#    sampler:
-#      type: "random"
-#      samples_per_epoch: 4096
-#
-#    siamese_training_pair_sampling: *siamese_training_pair_sampling
-#
-#    transform: *transform_options
-
-#  test:
-#    batch_size: 32
-#    num_io_threads: !const "num_io_threads_per_worker"
-#    num_workers: !const "num_eval_workers"
-#
-#    type: "siamese_tracker_eval"
-#
-#    source:
-#      type: "dataset"
-#      parameters:
-#        !include "../_dataset/test-mm.yaml"
-#
-#    sampler:
-#      type: "distributed_dynamic_scheduling"
-#      shuffle: false
-#
-#    transform:
-#      type: "default"
-#      template_area_factor: 2.0
-#
-#    result_collector:
-#      async_worker: true
-#      log_summary: false
-#      dispatch:
-#        - match:
-#            name_regex: ".*"
-#          handlers:
-#            - type: "one_pass_evaluation_compatible"
-#              file_name: "ope_results"
 
   eval:
     batch_size: 128
@@ -199,7 +117,7 @@ data:
     source:
       type: "dataset"
       parameters:
-        !include "../_dataset/test-mm.yaml"
+        !include "../_dataset/test.yaml"
 
     sampler:
       type: "distributed_dynamic_scheduling"

@@ -35,7 +35,7 @@ def json_query_replace(json_object, path: str, value):
         if json_object.get(int(paths[-1]), None):
             json_object[int(paths[-1])] = value
     else:
-        if json_object.get(paths[-1], None):
+        if json_object.get(paths[-1], None) is not None:
             json_object[paths[-1]] = value
 
 

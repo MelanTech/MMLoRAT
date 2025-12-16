@@ -9,12 +9,4 @@ def load_config(runtime_vars):
     if runtime_vars.mixin_config is not None:
         load_static_mixin_config_and_apply_rules(runtime_vars, config)
 
-    # Zekai Shao: Used for model weight loading in inference phase
-    try:
-        config['model']['weight_path'] = runtime_vars.weight_path
-        config['model']['eval'] = runtime_vars.eval
-    except:
-        config['model']['weight_path'] = []
-        config['model']['eval'] = False
-
     return config
