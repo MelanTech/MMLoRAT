@@ -20,8 +20,7 @@ class SiamFCTrainingPairSampler:
                  siamese_sampling_disable_frame_range_constraint_if_search_frame_not_found: bool,
                  negative_sample_weight: float,
                  negative_sample_generation_methods: Sequence[SiamesePairNegativeSamplingMethod],
-                 negative_sample_generation_method_weights: Optional[np.ndarray],
-                 negative_online_sample_weight: float):
+                 negative_sample_generation_method_weights: Optional[np.ndarray]):
         self.datasets = datasets
 
         dataset_weights = np.array(dataset_weights, dtype=np.float64)
@@ -37,8 +36,6 @@ class SiamFCTrainingPairSampler:
         self.negative_sample_weight = negative_sample_weight
         self.negative_sample_generation_methods = negative_sample_generation_methods
         self.negative_sample_generation_method_weights = negative_sample_generation_method_weights
-
-        self.negative_online_sample_weight = negative_online_sample_weight
 
         if len(negative_sample_generation_methods) > 0:
             distractor_picker_required = False
@@ -67,6 +64,7 @@ class SiamFCTrainingPairSampler:
             is_positive = True
 
         track = _get_random_track(sequence, rng_engine)
+
         if is_positive:
             frame_indices = get_random_positive_siamese_training_pair_from_track(
                 track, self.siamese_sampling_frame_range, self.siamese_sampling_method, rng_engine,
@@ -74,12 +72,6 @@ class SiamFCTrainingPairSampler:
                 self.siamese_sampling_frame_range_auto_extend_max_retry_count,
                 self.siamese_sampling_disable_frame_range_constraint_if_search_frame_not_found
             )
-
-            # Zekai Shao: Fetch online template indices
-            if self.negative_online_sample_weight > 0:
-                is_online_positive = rng_engine.random() > self.negative_online_sample_weight
-            else:
-                is_online_positive = True
 
             frame_indices_o = get_random_positive_siamese_training_pair_from_track(
                 track, self.siamese_sampling_frame_range, self.siamese_sampling_method, rng_engine,
@@ -96,7 +88,6 @@ class SiamFCTrainingPairSampler:
                 SamplingResult_Element(dataset_index, sequence_index, track.get_object_id(), frame_indices[1]),
                 SamplingResult_Element(dataset_index, sequence_index, track.get_object_id(), frame_indices_o[0]),
                 True,
-                is_online_positive,
             )
         else:
             method = rng_engine.choice(self.negative_sample_generation_methods, p=self.negative_sample_generation_method_weights)

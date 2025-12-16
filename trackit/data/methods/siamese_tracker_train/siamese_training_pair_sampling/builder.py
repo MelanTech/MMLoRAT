@@ -26,7 +26,6 @@ def build_SiamFC_training_pair_sampler(datasets: Sequence[TrackingDataset], data
 
     # negative training pair sampling
     negative_sample_weight = 0
-    negative_online_sample_weight = 0
     negative_sample_methods = []
     negative_sample_methods_weight = None
     if 'negative_sample' in siamese_sampling_config:
@@ -43,9 +42,6 @@ def build_SiamFC_training_pair_sampler(datasets: Sequence[TrackingDataset], data
 
     negative_sample_weight = negative_sample_weight / (positive_sample_weight + negative_sample_weight)
 
-    if 'negative_online_sample' in siamese_sampling_config:
-        negative_online_sample_weight = siamese_sampling_config['negative_online_sample']['weight']
-
     return SiamFCTrainingPairSampler(datasets, datasets_sampling_weight, sequence_picker,
                                      siamese_sampling_frame_range=siamese_sampling_frame_range,
                                      siamese_sampling_method=siamese_sampling_method,
@@ -54,5 +50,4 @@ def build_SiamFC_training_pair_sampler(datasets: Sequence[TrackingDataset], data
                                      siamese_sampling_disable_frame_range_constraint_if_search_frame_not_found=siamese_sampling_disable_frame_range_constraint_if_search_frame_not_found,
                                      negative_sample_weight=negative_sample_weight,
                                      negative_sample_generation_methods=negative_sample_methods,
-                                     negative_sample_generation_method_weights=negative_sample_methods_weight,
-                                     negative_online_sample_weight=negative_online_sample_weight)
+                                     negative_sample_generation_method_weights=negative_sample_methods_weight)

@@ -103,8 +103,6 @@ data:
       positive_sample:
         sample_mode: "interval"
         max_gaps: 100
-#      negative_online_sample:
-#        weight: 0.3
 
     transform: &transform_options
       type: "default"

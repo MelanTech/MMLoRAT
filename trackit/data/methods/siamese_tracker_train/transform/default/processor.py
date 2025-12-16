@@ -66,22 +66,10 @@ class SiamTrackerTrainingPairProcessor(SiameseTrackerTrain_DataTransform):
 
     def __call__(self, training_pair: SiameseTrainingPair, rng_engine: np.random.Generator):
         context = {'is_positive': training_pair.is_positive,
-                   'is_online_positive': training_pair.is_online_positive,
                    'z_bbox': training_pair.template.object_bbox,
                    'x_bbox': training_pair.search.object_bbox,
                    'd_bbox': training_pair.online.object_bbox,
                    }
-
-        d_bbox_backup = context['d_bbox'].copy()
-
-        is_online_positive = training_pair.is_online_positive
-
-        # Shift bbox for negative samples
-        if not is_online_positive:
-            context['d_bbox'] = _shift_bbox_(context['d_bbox'],
-                                             self.online_bbox_shift_range_x,
-                                             self.online_bbox_shift_range_y,
-                                             rng_engine)
 
         assert self.template_siamfc_cropping.prepare('z', rng_engine, context)
         assert self.template_siamfc_cropping.prepare('d', rng_engine, context)
@@ -108,16 +96,7 @@ class SiamTrackerTrainingPairProcessor(SiameseTrackerTrain_DataTransform):
 
         _bbox_clip_to_image_boundary_(context['z_cropped_bbox'], context['z_cropped_image'])
         _bbox_clip_to_image_boundary_(context['x_cropped_bbox'], context['x_cropped_image'])
-
-        # FIXME: bbox might be invalid here
-        try:
-            _bbox_clip_to_image_boundary_(context['d_cropped_bbox'], context['d_cropped_image'])
-        except:
-            print('Invalid shifted bbox found, use original bbox')
-            context['d_bbox'] = d_bbox_backup
-            assert self.template_siamfc_cropping.prepare('d', rng_engine, context)
-            self.template_siamfc_cropping.do('d', context)
-            _bbox_clip_to_image_boundary_(context['d_cropped_bbox'], context['d_cropped_image'])
+        _bbox_clip_to_image_boundary_(context['d_cropped_bbox'], context['d_cropped_image'])
 
         self.image_normalize_transform_(context['z_cropped_image'])
         self.image_normalize_transform_(context['x_cropped_image'])
@@ -134,7 +113,6 @@ class SiamTrackerTrainingPairProcessor(SiameseTrackerTrain_DataTransform):
         data['d_cropped_image'] = context['d_cropped_image']
 
         data['is_positive'] = is_positive
-        data['is_online_positive'] = is_online_positive
 
         if self.visualize:
             from trackit.data.context.worker import get_current_worker_info
@@ -142,10 +120,7 @@ class SiamTrackerTrainingPairProcessor(SiameseTrackerTrain_DataTransform):
             output_path = get_current_worker_info().get_output_path()
 
             if output_path is not None:
-                if is_online_positive:
-                    output_path = os.path.join(output_path, 'pos')
-                else:
-                    output_path = os.path.join(output_path, 'neg')
+                output_path = os.path.join(output_path, 'pos')
                 visualize_siam_tracker_training_pair_processor(output_path, training_pair, context,
                                                                self.norm_stats_dataset_name)
 
@@ -174,34 +149,6 @@ def _bbox_clip_to_image_boundary_(bbox: np.ndarray, image: torch.Tensor):
     h, w = image.shape[-2:]
     bbox_clip_to_image_boundary_(bbox, np.array((w, h)))
     assert bbox_is_valid(bbox), f'bbox:\n{bbox}\nimage_size:\n{image.shape}'
-
-
-def _shift_bbox_(bbox: np.ndarray, shift_range_x: Tuple[float, float], shift_range_y: Tuple[float, float],
-                 rng_engine: np.random.Generator):
-    width = (bbox[2] - bbox[0])
-    height = (bbox[3] - bbox[1])
-    dx = rng_engine.uniform(*shift_range_x)
-    dy = rng_engine.uniform(*shift_range_y)
-
-    shift_x = dx * width if rng_engine.random() > 0.5 else -dx * width
-    shift_y = dy * height if rng_engine.random() > 0.5 else -dy * height
-
-    shift_x = int(shift_x)
-    shift_y = int(shift_y)
-
-    new_bbox = bbox.copy()
-
-    new_bbox[0] += shift_x
-    new_bbox[1] += shift_y
-    new_bbox[2] += shift_x
-    new_bbox[3] += shift_y
-
-    new_bbox[0] = max(0, new_bbox[0])
-    new_bbox[1] = max(0, new_bbox[1])
-    new_bbox[2] = max(new_bbox[0], new_bbox[2])
-    new_bbox[3] = max(new_bbox[1], new_bbox[3])
-
-    return new_bbox
 
 
 class SiamFCCropping:

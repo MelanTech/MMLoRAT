@@ -29,4 +29,3 @@ class SiameseTrainingPairSamplingResult:
     x: SamplingResult_Element
     d: SamplingResult_Element
     is_positive: bool
-    is_online_positive: bool

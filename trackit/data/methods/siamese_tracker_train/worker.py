@@ -61,8 +61,7 @@ def _prepare_siamese_training_pair(global_job_index: int, batch_element_index: i
     _decode_with_cache('z', training_pair.z, datasets, cache, result, rng_engine, prefetch)
     _decode_with_cache('x', training_pair.x, datasets, cache, result, rng_engine, prefetch)
     _decode_with_cache('d', training_pair.d, datasets, cache, result, rng_engine, prefetch)
-    decoded_training_pair = SiameseTrainingPair(training_pair.is_positive, training_pair.is_online_positive,
-                                                result['z'], result['x'], result['d'])
+    decoded_training_pair = SiameseTrainingPair(training_pair.is_positive, result['z'], result['x'], result['d'])
 
     # bug check
     if decoded_training_pair.is_positive:

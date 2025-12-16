@@ -28,7 +28,6 @@ class MMOTFrameInfo:
 @dataclass(frozen=True)
 class SiameseTrainingPair:
     is_positive: bool
-    is_online_positive: bool
     template: SOTFrameInfo
     search: SOTFrameInfo
     online: SOTFrameInfo
