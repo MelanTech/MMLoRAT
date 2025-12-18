@@ -155,6 +155,31 @@ data:
               file_name: "TrackingNet-test"
               bbox_rasterize: true
         - match:
+            name: "LasHeR"
+            split: "test"
+          handlers:
+            - type: "external/LasHeR"
+              file_name: "LasHeR-test"
+              bbox_rasterize: true
+        - match:
+            name: "RGBT234"
+          handlers:
+            - type: "external/RGBT234"
+              file_name: "RGBT234-test"
+              bbox_rasterize: true
+        - match:
+            name: "RGBT210"
+          handlers:
+            - type: "external/RGBT210"
+              file_name: "RGBT210-test"
+              bbox_rasterize: true
+        - match:
+            name: "GTOT"
+          handlers:
+            - type: "external/GTOT"
+              file_name: "GTOT-test"
+              bbox_rasterize: true
+        - match:
             name_regex: ".*"
           handlers:
             - type: "one_pass_evaluation_compatible"

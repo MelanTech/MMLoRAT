@@ -140,6 +140,18 @@ class EvaluationResultCollector_RuntimeIntegration(HostDataPipeline):
                         if output_path is not None:
                             from .handler.external_adaptors.trackingnet import TrackingNetEvaluationToolAdaptor
                             handler_cls = TrackingNetEvaluationToolAdaptor
+                    elif handler_build_option.handler_type == 'external/LasHeR':
+                            from .handler.external_adaptors.rgbt.lasher import LasHeREvaluationToolAdaptor
+                            handler_cls = LasHeREvaluationToolAdaptor
+                    elif handler_build_option.handler_type == 'external/RGBT234':
+                            from .handler.external_adaptors.rgbt.rgbt234 import RGBT234EvaluationToolAdaptor
+                            handler_cls = RGBT234EvaluationToolAdaptor
+                    elif handler_build_option.handler_type == 'external/RGBT210':
+                            from .handler.external_adaptors.rgbt.rgbt210 import RGBT210EvaluationToolAdaptor
+                            handler_cls = RGBT210EvaluationToolAdaptor
+                    elif handler_build_option.handler_type == 'external/GTOT':
+                            from .handler.external_adaptors.rgbt.gtot import GTOTEvaluationToolAdaptor
+                            handler_cls = GTOTEvaluationToolAdaptor
                     else:
                         raise ValueError(f'Unknown handler type: {handler_build_option.handler_type}')
                     if handler_cls is not None:
