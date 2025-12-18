@@ -83,10 +83,6 @@ data:
           translation_jitter: 3
           min_object_size: 10
 
-      online_bbox_shift:
-        shift_range_x: [0.5, 1]
-        shift_range_y: [0.5, 1]
-
       augmentation:
         - type: "horizontal_flip"
           target: ["template", "search_region", "online"]

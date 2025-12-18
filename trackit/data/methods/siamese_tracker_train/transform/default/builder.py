@@ -48,8 +48,6 @@ def build_siamese_tracker_training_data_processing_components(transform_config: 
         template_siamfc_cropping_parameter,
         search_region_siamfc_cropping_parameter,
         build_augmentation_pipeline(transform_config['augmentation']),
-        transform_config['online_bbox_shift']['shift_range_x'],
-        transform_config['online_bbox_shift']['shift_range_y'],
         common_config['normalization'],
         additional_processors,
         transform_config.get('visualize', False))

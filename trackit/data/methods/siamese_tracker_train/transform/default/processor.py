@@ -12,7 +12,7 @@ from trackit.core.operator.numpy.bbox.utility.image import bbox_clip_to_image_bo
 from trackit.core.operator.numpy.bbox.validity import bbox_is_valid
 from trackit.core.utils.siamfc_cropping import prepare_siamfc_cropping_with_augmentation, apply_siamfc_cropping, \
     apply_siamfc_cropping_to_boxes
-from typing import Optional, Sequence, Mapping, Tuple
+from typing import Optional, Sequence, Mapping
 
 from trackit.data.utils.collation_helper import collate_element_as_torch_tensor, collate_element_as_np_array
 from trackit.data.protocol.train_input import TrainData
@@ -46,8 +46,6 @@ class SiamTrackerTrainingPairProcessor(SiameseTrackerTrain_DataTransform):
                  template_siamfc_cropping_parameter: SiamFCCroppingParameter,
                  search_region_siamfc_cropping_parameter: SiamFCCroppingParameter,
                  augmentation_pipeline: AugmentationPipeline,
-                 online_bbox_shift_range_x: Tuple[float, float],
-                 online_bbox_shift_range_y: Tuple[float, float],
                  norm_stats_dataset_name: str,
                  additional_processors: Optional[Sequence[ExtraTransform]] = None,
                  visualize: bool = False):
@@ -56,9 +54,6 @@ class SiamTrackerTrainingPairProcessor(SiameseTrackerTrain_DataTransform):
 
         self.augmentation_pipeline = augmentation_pipeline
         self.additional_processors = additional_processors
-
-        self.online_bbox_shift_range_x = online_bbox_shift_range_x
-        self.online_bbox_shift_range_y = online_bbox_shift_range_y
 
         self.image_normalize_transform_ = get_dataset_norm_stats_transform(norm_stats_dataset_name, inplace=True)
         self.norm_stats_dataset_name = norm_stats_dataset_name
