@@ -141,9 +141,9 @@ if [[ -z "$run_id" ]]; then
     run_id="$run_id-$DATE_WITH_TIME"
 fi
 
-output_dir="$output_dir/$run_id"
-mkdir -p "$output_dir"
-echo "Output directory: $output_dir"
+#output_dir="$output_dir/$run_id"
+mkdir -p "$output_dir/$run_id"
+echo "Output directory: $output_dir/$run_id"
 
 target_options=("$method_name" "$config_name")
 
@@ -200,9 +200,9 @@ if [[ -n "$resume_file_path" ]]; then
 fi
 
 if [[ "$do_sweep" == false ]]; then
-    output_log="$output_dir/train_stdout.log"
+    output_log="$output_dir/$run_id/train_stdout.log"
     if [[ -n "$NODE_RANK" ]]; then
-        output_log="$output_dir/train_stdout.$NODE_RANK.log"
+        output_log="$output_dir/$run_id/train_stdout.$NODE_RANK.log"
     fi
     PYTHONUNBUFFERED=1 OMP_NUM_THREADS=1 python main.py "${target_options[@]}" "${common_options[@]}" |& tee -a "$output_log"
 else
@@ -210,9 +210,9 @@ else
         echo "Multi-nodes distributed training currently not support for hyper-parameter tunning"
         exit 1
     fi
-    output_log="$output_dir/sweep_stdout.log"
+    output_log="$output_dir/$run_id/sweep_stdout.log"
     if [[ -n "$NODE_RANK" ]]; then
-        output_log="$output_dir/sweep_stdout.$NODE_RANK.log"
+        output_log="$output_dir/$run_id/sweep_stdout.$NODE_RANK.log"
     fi
     sweep_options=()
     if [[ -n "$sweep_config_path" ]]; then
