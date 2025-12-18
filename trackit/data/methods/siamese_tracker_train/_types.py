@@ -1,6 +1,6 @@
 import numpy as np
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Union
 from trackit.data.source import TrackingDataset_Sequence, TrackingDataset_Track, TrackingDataset_FrameInTrack
 
 
@@ -28,6 +28,6 @@ class MMOTFrameInfo:
 @dataclass(frozen=True)
 class SiameseTrainingPair:
     is_positive: bool
-    template: SOTFrameInfo
-    search: SOTFrameInfo
-    online: SOTFrameInfo
+    template: Union[SOTFrameInfo, MMOTFrameInfo]
+    search: Union[SOTFrameInfo, MMOTFrameInfo]
+    online: Union[SOTFrameInfo, MMOTFrameInfo]
