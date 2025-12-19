@@ -37,8 +37,10 @@ class MMLoRATBaseline_DINOv2(nn.Module):
                                                            vit.patch_embed.patches_resolution,
                                                            num_prefix_tokens=0, interpolate_offset=0))
 
-        self.token_type_embed = nn.Parameter(torch.empty(5, self.embed_dim))
-        trunc_normal_(self.token_type_embed, std=.02)
+        self.token_type_embed_v = nn.Parameter(torch.empty(5, self.embed_dim))
+        self.token_type_embed_i = nn.Parameter(torch.empty(5, self.embed_dim))
+        trunc_normal_(self.token_type_embed_v, std=.02)
+        trunc_normal_(self.token_type_embed_i, std=.02)
 
         # self.fuse_search = Mlp(self.embed_dim * 2, out_features=self.embed_dim, num_layers=3)
 
@@ -59,11 +61,11 @@ class MMLoRATBaseline_DINOv2(nn.Module):
         z_W, z_H = self.z_size
         z_v = z_v + self.pos_embed.view(1, self.x_size[1], self.x_size[0], self.embed_dim)[:, : z_H, : z_W, :].reshape(
             1, z_H * z_W, self.embed_dim)
-        z_v = z_v + self.token_type_embed[:2][z_feat_mask.flatten(1)]
+        z_v = z_v + self.token_type_embed_v[:2][z_feat_mask.flatten(1)]
 
         z_i = z_i + self.pos_embed.view(1, self.x_size[1], self.x_size[0], self.embed_dim)[:, : z_H, : z_W, :].reshape(
             1, z_H * z_W, self.embed_dim)
-        z_i = z_i + self.token_type_embed[:2][z_feat_mask.flatten(1)]
+        z_i = z_i + self.token_type_embed_i[:2][z_feat_mask.flatten(1)]
 
         return z_v, z_i
 
@@ -74,11 +76,11 @@ class MMLoRATBaseline_DINOv2(nn.Module):
         d_W, d_H = self.d_size
         d_v = d_v + self.pos_embed.view(1, self.x_size[1], self.x_size[0], self.embed_dim)[:, : d_H, : d_W, :].reshape(
             1, d_H * d_W, self.embed_dim)
-        d_v = d_v + self.token_type_embed[2:4][d_feat_mask.flatten(1)]
+        d_v = d_v + self.token_type_embed_v[2:4][d_feat_mask.flatten(1)]
 
         d_i = d_i + self.pos_embed.view(1, self.x_size[1], self.x_size[0], self.embed_dim)[:, : d_H, : d_W, :].reshape(
             1, d_H * d_W, self.embed_dim)
-        d_i = d_i + self.token_type_embed[2:4][d_feat_mask.flatten(1)]
+        d_i = d_i + self.token_type_embed_i[2:4][d_feat_mask.flatten(1)]
 
         return d_v, d_i
 
@@ -87,9 +89,9 @@ class MMLoRATBaseline_DINOv2(nn.Module):
         x_i = self.patch_embed(x[:, 3:])
 
         x_v = x_v + self.pos_embed
-        x_v = x_v + self.token_type_embed[4].view(1, 1, self.embed_dim)
+        x_v = x_v + self.token_type_embed_v[4].view(1, 1, self.embed_dim)
         x_i = x_i + self.pos_embed
-        x_i = x_i + self.token_type_embed[4].view(1, 1, self.embed_dim)
+        x_i = x_i + self.token_type_embed_i[4].view(1, 1, self.embed_dim)
         return x_v, x_i
 
     def _fusion(self, z_feat_v: torch.Tensor, x_feat_v: torch.Tensor, z_feat_i: torch.Tensor, x_feat_i: torch.Tensor,
