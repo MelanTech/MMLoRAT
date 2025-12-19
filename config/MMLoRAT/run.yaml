@@ -247,7 +247,7 @@ runner:
           window_penalty: 0.45
         template_update:
           type: "simple"
-          update_threshold: 0.84
+          update_threshold: 0.86
           template_area_factor: 2.0
         visualization: false
 
