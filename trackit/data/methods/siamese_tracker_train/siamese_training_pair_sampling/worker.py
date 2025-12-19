@@ -4,7 +4,7 @@ from trackit.data.source import TrackingDataset
 from trackit.data.sampling.per_sequence import RandomAccessiblePerSequenceSampler
 
 from ._algos import get_random_positive_siamese_training_pair_from_track, _get_random_track, \
-    _get_random_frame_from_track, get_random_negative_siamese_training_pair_from_track
+    _get_random_frame_from_track
 from ._types import SiamesePairSamplingMethod, SiamesePairNegativeSamplingMethod, SamplingResult_Element, SiameseTrainingPairSamplingResult
 from ._distractor import DistractorGenerator
 
@@ -70,23 +70,17 @@ class SiamFCTrainingPairSampler:
                 track, self.siamese_sampling_frame_range, self.siamese_sampling_method, rng_engine,
                 self.siamese_sampling_frame_range_auto_extend_step,
                 self.siamese_sampling_frame_range_auto_extend_max_retry_count,
-                self.siamese_sampling_disable_frame_range_constraint_if_search_frame_not_found
+                self.siamese_sampling_disable_frame_range_constraint_if_search_frame_not_found,
+                online_sampling=True
             )
 
-            frame_indices_o = get_random_positive_siamese_training_pair_from_track(
-                track, self.siamese_sampling_frame_range, self.siamese_sampling_method, rng_engine,
-                self.siamese_sampling_frame_range_auto_extend_step,
-                self.siamese_sampling_frame_range_auto_extend_max_retry_count,
-                self.siamese_sampling_disable_frame_range_constraint_if_search_frame_not_found
-            )
-
-            if len(frame_indices) == 1:
-                frame_indices = (frame_indices[0], frame_indices[0])
+            if len(frame_indices) == 2:
+                frame_indices = (frame_indices[0], frame_indices[0], frame_indices[1])
 
             training_pair = SiameseTrainingPairSamplingResult(
                 SamplingResult_Element(dataset_index, sequence_index, track.get_object_id(), frame_indices[0]),
                 SamplingResult_Element(dataset_index, sequence_index, track.get_object_id(), frame_indices[1]),
-                SamplingResult_Element(dataset_index, sequence_index, track.get_object_id(), frame_indices_o[0]),
+                SamplingResult_Element(dataset_index, sequence_index, track.get_object_id(), frame_indices[2]),
                 True,
             )
         else:
