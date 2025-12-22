@@ -4,6 +4,7 @@
 
 import os
 import numpy as np
+from PIL import Image, UnidentifiedImageError
 
 from trackit.datasets.common.seed import BaseSeed
 from trackit.datasets.MMOT.constructor import MultiModalObjectTrackingDatasetConstructor
@@ -47,6 +48,9 @@ class RGBT210_Seed(BaseSeed):
                 frame_ids_v = sorted(os.listdir(frames_path_v))
                 frame_ids_i = sorted(os.listdir(frames_path_i))
 
+                frame_size_v = self._safe_imsize(os.path.join(frames_path_v, frame_ids_v[0]))
+                frame_size_i = self._safe_imsize(os.path.join(frames_path_i, frame_ids_i[0]))
+
                 for frame_id_v, frame_id_i, box in zip(frame_ids_v, frame_ids_i, boxes):
                     # frame_path: the path of the frame image,
                     # assuming the frame image is named as 0001.jpg, 0002.jpg, ...
@@ -57,7 +61,15 @@ class RGBT210_Seed(BaseSeed):
                     with sequence_constructor.new_frame() as frame_constructor:
                         # set the frame path and image size
                         # image_size is optional (will be read from the image if not provided)
-                        frame_constructor.set_path((frame_path_v, frame_path_i))
+                        frame_constructor.set_path((frame_path_v, frame_path_i), (frame_size_v, frame_size_i))
                         # set the bounding box
                         # validity is optional (False for fully occluded or out-of-view or not annotated)
                         frame_constructor.set_bounding_box(box, validity=True)
+
+    @staticmethod
+    def _safe_imsize(img_path):
+        try:
+            with Image.open(img_path) as img:
+                return img.size
+        except (FileNotFoundError, UnidentifiedImageError):
+            return None

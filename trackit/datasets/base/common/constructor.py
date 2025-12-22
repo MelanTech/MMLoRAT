@@ -188,12 +188,14 @@ def set_mmot_path_(image_dict: dict, image_path: tuple, root_path: str, size):
             print(f'Warning: failed to decode image file {image_path}')
             image_dict['size'] = [(0, 0), (0, 0)]
     else:
-        assert len(size) == 2
-        for v in size:
-            if isinstance(v, float):
-                assert v.is_integer()
-        size = tuple([int(v) for v in size])
-        image_dict['size'] = [size, size]
+        assert len(size) == 2 and len(size[0]) == 2 and len(size[1]) == 2
+        for s in size:
+            for v in s:
+                if isinstance(v, float):
+                    assert v.is_integer()
+        size_v = tuple([int(v) for v in size[0]])
+        size_i = tuple([int(v) for v in size[1]])
+        image_dict['size'] = [size_v, size_i]
 
 
 def generate_sequence_path_(sequence: dict):
