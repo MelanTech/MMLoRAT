@@ -195,32 +195,22 @@ def _decode_image_with_cache(name: str, frame: SOTFrameInfo, cache: dict, contex
 
 
 def _decode_mmot_image_with_cache(name: str, frame: MMOTFrameInfo, cache: dict, context: dict):
-    try:
-        if frame.image[0].args[1] in cache:
-            context[f'{name}_image'] = cache[frame.image]
-            return
-        image_v = frame.image[0]()
-        image_i = frame.image[1]()
-        image = np.concatenate([image_v, image_i], axis=-1)
+    cache_key = frame.image[0].args[1] if hasattr(frame.image[0], 'args') else id(frame.image[0])
 
-        image = torch.from_numpy(image)
-        image = torch.permute(image, (2, 0, 1)).contiguous()
-        image = image.to(torch.float32)
+    if cache_key in cache:
+        context[f'{name}_image'] = cache[cache_key]
+        return
 
-        cache[frame.image[0]] = image
-        context[f'{name}_image'] = image
+    image_v = frame.image[0]() if callable(frame.image[0]) else frame.image[0]
+    image_i = frame.image[1]() if callable(frame.image[1]) else frame.image[1]
+    image = np.concatenate([image_v, image_i], axis=-1)
 
-    except:
-        # NOTE: For non parallel mode
-        image_v = frame.image[0]
-        image_i = frame.image[1]
-        image = np.concatenate([image_v, image_i], axis=-1)
+    image = torch.from_numpy(image)
+    image = torch.permute(image, (2, 0, 1)).contiguous()
+    image = image.to(torch.float32)
 
-        image = torch.from_numpy(image)
-        image = torch.permute(image, (2, 0, 1)).contiguous()
-        image = image.to(torch.float32)
-
-        context[f'{name}_image'] = image
+    cache[cache_key] = image
+    context[f'{name}_image'] = image
 
 
 class SiamTrackerTrainingPairProcessorBatchCollator:
