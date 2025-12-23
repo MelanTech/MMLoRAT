@@ -1,0 +1,4 @@
+- path: "run.data.eval.source"
+  value:
+    type: "dataset"
+    parameters: !include "../../_dataset/test-rgbt210.yaml"

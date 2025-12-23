@@ -5,16 +5,5 @@ filters:
       bounding_box_coordinate_system: "Continuous"
 
 datasets:
-  - name: "LasHeR"
+  - name: "GTOT"
     type: "MMOT"
-    splits:
-      - "test"
-
-#  - name: "RGBT234"
-#    type: "MMOT"
-
-#  - name: "RGBT210"
-#    type: "MMOT"
-
-#  - name: "GTOT"
-#    type: "MMOT"

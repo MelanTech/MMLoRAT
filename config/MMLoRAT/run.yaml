@@ -113,7 +113,7 @@ data:
     source:
       type: "dataset"
       parameters:
-        !include "../_dataset/test.yaml"
+        !include "../_dataset/test-lasher.yaml"
 
     sampler:
       type: "distributed_dynamic_scheduling"
