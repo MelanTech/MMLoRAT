@@ -2,7 +2,7 @@
 # Licensed under Apache-2.0: http://www.apache.org/licenses/LICENSE-2.0
 # Add support for RGB-T dataset
 
-from typing import Tuple, List, Optional, Mapping, Any
+from typing import Tuple, Mapping, Any
 
 import torch
 import torch.nn as nn
@@ -11,7 +11,7 @@ from timm.models.layers import trunc_normal_
 from trackit.models.backbone.dinov2 import DinoVisionTransformer, interpolate_pos_encoding
 from .modules.patch_embed import PatchEmbedNoSizeCheck
 from .modules.lora.apply import find_all_frozen_nn_linear_names, apply_lora
-from .modules.head.mlp import MlpAnchorFreeHead, Mlp
+from .modules.head.mlp import MlpAnchorFreeHead
 
 
 class MMLoRAT_DINOv2(nn.Module):
@@ -51,8 +51,6 @@ class MMLoRAT_DINOv2(nn.Module):
         for i_layer, block in enumerate(self.blocks):
             linear_names = find_all_frozen_nn_linear_names(block)
             apply_lora(block, linear_names, lora_r, lora_alpha, lora_dropout, use_rslora)
-
-        # self.fuse_search = Mlp(self.embed_dim * 2, out_features=self.embed_dim, num_layers=3)
 
         self.head = MlpAnchorFreeHead(self.embed_dim, self.x_size)
 
@@ -110,14 +108,7 @@ class MMLoRAT_DINOv2(nn.Module):
         for i in range(len(self.blocks)):
             fusion_feat = self.blocks[i](fusion_feat)
         fusion_feat = self.norm(fusion_feat)
-        return self._fuse_search(fusion_feat, z_feat_v.shape[1], x_feat_v.shape[1])
-
-    def _fuse_search(self, feat, z_len, x_len):
-        # search_v = feat[:, z_len:z_len + x_len, :]
-        search_i = feat[:, 2 * z_len + x_len:2 * (z_len + x_len), :]
-        # search = torch.cat([search_v, search_i], dim=2)
-        # return self.fuse_search(search)
-        return search_i
+        return fusion_feat[:, 2 * z_feat_v.shape[1] + x_feat_v.shape[1]:2 * (z_feat_v.shape[1] + x_feat_v.shape[1]), :]
 
     def state_dict(self, **kwargs):
         state_dict = super().state_dict(**kwargs)

@@ -10,7 +10,7 @@ import torch.nn as nn
 from timm.models.layers import trunc_normal_
 from trackit.models.backbone.dinov2 import DinoVisionTransformer, interpolate_pos_encoding
 from .modules.patch_embed import PatchEmbedNoSizeCheck
-from .modules.head.mlp import MlpAnchorFreeHead, Mlp
+from .modules.head.mlp import MlpAnchorFreeHead
 from .modules.lora.merge import lora_merge_state_dict
 
 
@@ -25,7 +25,6 @@ class MMLoRATBaseline_DINOv2(nn.Module):
         self.d_size = template_feat_size
         self.x_size = search_region_feat_size
 
-        # assert isinstance(vit, DinoVisionTransformer)
         self.patch_embed = PatchEmbedNoSizeCheck.build(vit.patch_embed)
         self.blocks = vit.blocks
         self.norm = vit.norm
@@ -41,8 +40,6 @@ class MMLoRATBaseline_DINOv2(nn.Module):
         self.token_type_embed_i = nn.Parameter(torch.empty(5, self.embed_dim))
         trunc_normal_(self.token_type_embed_v, std=.02)
         trunc_normal_(self.token_type_embed_i, std=.02)
-
-        # self.fuse_search = Mlp(self.embed_dim * 2, out_features=self.embed_dim, num_layers=3)
 
         self.head = MlpAnchorFreeHead(self.embed_dim, self.x_size)
 
@@ -100,14 +97,7 @@ class MMLoRATBaseline_DINOv2(nn.Module):
         for i in range(len(self.blocks)):
             fusion_feat = self.blocks[i](fusion_feat)
         fusion_feat = self.norm(fusion_feat)
-        return self._fuse_search(fusion_feat, z_feat_v.shape[1], x_feat_v.shape[1])
-
-    def _fuse_search(self, feat, z_len, x_len):
-        # search_v = feat[:, z_len:z_len + x_len, :]
-        search_i = feat[:, 2 * z_len + x_len:2 * (z_len + x_len), :]
-        # search = torch.cat([search_v, search_i], dim=2)
-        # return self.fuse_search(search)
-        return search_i
+        return fusion_feat[:, 2 * z_feat_v.shape[1] + x_feat_v.shape[1]:2 * (z_feat_v.shape[1] + x_feat_v.shape[1]), :]
 
     def load_state_dict(self, state_dict: Mapping[str, Any], **kwargs):
         state_dict = lora_merge_state_dict(self, state_dict)
