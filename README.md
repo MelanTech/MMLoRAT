@@ -63,34 +63,34 @@ Note: Our code performs evaluation automatically when model training is complete
 
 ```shell
 # MMLoRAT-B-224
-bash ../run.sh MMLoRAT dinov2 --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
+bash run.sh MMLoRAT dinov2 --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
 
 # MMLoRAT-B-378
-bash ../run.sh MMLoRAT dinov2 --mixin_config base_378 --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
+bash run.sh MMLoRAT dinov2 --mixin_config base_378 --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
 
 # MMLoRAT-L-224
-bash ../run.sh MMLoRAT dinov2 --mixin_config large --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
+bash run.sh MMLoRAT dinov2 --mixin_config large --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
 
 # MMLoRAT-L-378
-bash ../run.sh MMLoRAT dinov2 --mixin_config large_378 --mixin_config base_378 --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
+bash run.sh MMLoRAT dinov2 --mixin_config large_378 --mixin_config base_378 --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
 
 # MMLoRAT-G-224
-bash ../run.sh MMLoRAT dinov2 --mixin_config giant --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
+bash run.sh MMLoRAT dinov2 --mixin_config giant --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
 
 # MMLoRAT-G-378
-bash ../run.sh MMLoRAT dinov2 --mixin_config giant_378 --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
+bash run.sh MMLoRAT dinov2 --mixin_config giant_378 --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
 
 # Evaluate all datasets after training.
-bash ../run.sh MMLoRAT dinov2 --mixin_config test-full --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
+bash run.sh MMLoRAT dinov2 --mixin_config test-full --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
 
 # Evaluate RGBT234 after training.
-bash ../run.sh MMLoRAT dinov2 --mixin_config test-rgbt234 --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
+bash run.sh MMLoRAT dinov2 --mixin_config test-rgbt234 --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
 
 # Evaluate RGBT210 after training.
-bash ../run.sh MMLoRAT dinov2 --mixin_config test-rgbt210 --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
+bash run.sh MMLoRAT dinov2 --mixin_config test-rgbt210 --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
 
 # Evaluate GTOT after training.
-bash ../run.sh MMLoRAT dinov2 --mixin_config test-gtot --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
+bash run.sh MMLoRAT dinov2 --mixin_config test-gtot --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
 ```
 
 ### Evaluation
@@ -98,19 +98,19 @@ You can use the following command to inference and evaluate separately:
 
 ```shell
 # Inference and evaluate on LasHeR.
-bash ../run.sh MMLoRAT dinov2 --mixin_config evaluation --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
+bash run.sh MMLoRAT dinov2 --mixin_config evaluation --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
 
 # Inference and evaluate on RGBT234.
-bash ../run.sh MMLoRAT dinov2 --mixin_config evaluation --mixin_config test-rgbt234 --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
+bash run.sh MMLoRAT dinov2 --mixin_config evaluation --mixin_config test-rgbt234 --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
 
 # Inference and evaluate on RGBT210.
-bash ../run.sh MMLoRAT dinov2 --mixin_config evaluation --mixin_config test-rgbt210 --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
+bash run.sh MMLoRAT dinov2 --mixin_config evaluation --mixin_config test-rgbt210 --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
 
 # Inference and evaluate on GTOT.
-bash ../run.sh MMLoRAT dinov2 --mixin_config evaluation --mixin_config test-gtot --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
+bash run.sh MMLoRAT dinov2 --mixin_config evaluation --mixin_config test-gtot --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
 
 # Inference and evaluate all datasets.
-bash ../run.sh MMLoRAT dinov2 --mixin_config evaluation --mixin_config test-full --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
+bash run.sh MMLoRAT dinov2 --mixin_config evaluation --mixin_config test-full --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
 ```
 
 You can evaluate the output results separately through the following steps:
@@ -119,16 +119,16 @@ You can evaluate the output results separately through the following steps:
 2. Edit and run the evaluation script in ```sh/evaluation.sh```.
 ```shell
 # Evaluate on LasHeR
-python ../evaluation.py lasher --tracker_names MMLoRAT --result_paths /path/to/tracking/results
+python evaluation.py lasher --tracker_names MMLoRAT --result_paths /path/to/tracking/results
 
 # Evaluate on RGBT234
-python ../evaluation.py rgbt234 --tracker_names MMLoRAT --result_paths /path/to/tracking/results
+python evaluation.py rgbt234 --tracker_names MMLoRAT --result_paths /path/to/tracking/results
 
 # Evaluate on RGBT210
-python ../evaluation.py rgbt210 --tracker_names MMLoRAT --result_paths /path/to/tracking/results
+python evaluation.py rgbt210 --tracker_names MMLoRAT --result_paths /path/to/tracking/results
 
 # Evaluate on GTOT
-python ../evaluation.py gtot --tracker_names MMLoRAT --result_paths /path/to/tracking/results
+python evaluation.py gtot --tracker_names MMLoRAT --result_paths /path/to/tracking/results
 ```
 
 ### Profile Model
@@ -137,7 +137,7 @@ python ../evaluation.py gtot --tracker_names MMLoRAT --result_paths /path/to/tra
 # MMLoRAT-B-224
 python profile_model.py MMLoRAT dinov2 --device cuda
 # MMLoRAT-B-378
-python .profile_model.py MMLoRAT dinov2 --mixin_config base_378 --device cuda
+python profile_model.py MMLoRAT dinov2 --mixin_config base_378 --device cuda
 ...
 ```
 
