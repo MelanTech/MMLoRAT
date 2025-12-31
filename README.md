@@ -116,7 +116,7 @@ bash run.sh MMLoRAT dinov2 --mixin_config evaluation --mixin_config test-full --
 You can evaluate the output results separately through the following steps:
 1. Unzip the tracking results to a folder of your choice.
 
-2. Edit and run the evaluation script in ```sh/evaluation.sh```.
+2. Run the evaluation script `evaluation.py`.
 ```shell
 # Evaluate on LasHeR
 python evaluation.py lasher --tracker_names MMLoRAT --result_paths /path/to/tracking/results
