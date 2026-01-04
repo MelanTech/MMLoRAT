@@ -20,6 +20,7 @@ common:
   interpolation_mode: "bilinear"
   interpolation_align_corners: false
   normalization: "mm"
+  enable_online_template: true
 
 model:
   type: "dinov2"

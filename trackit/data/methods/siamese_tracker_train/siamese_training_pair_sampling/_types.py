@@ -27,5 +27,5 @@ class SamplingResult_Element:
 class SiameseTrainingPairSamplingResult:
     z: SamplingResult_Element
     x: SamplingResult_Element
-    d: SamplingResult_Element
+    d: SamplingResult_Element | None
     is_positive: bool

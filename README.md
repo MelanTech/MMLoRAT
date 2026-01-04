@@ -1,6 +1,9 @@
 # MMLoRAT: A Multi-Modal Version of LoRAT
 
 ## News
+**[Jan. 4, 2026]**
+* Add online template enable/disable support.
+
 **[Dec. 23, 2025]**
 * We have released the code of MMLoRAT.
 
@@ -57,6 +60,7 @@ Note: Our code performs evaluation automatically when model training is complete
   
 ### Preparation for pretrained models
 * Download [pretrained models](https://drive.google.com/drive/u/0/folders/1pFGegBmVqPZ2iEYYTAJCIiW5RZOxLqjN) and put them in the `pretrained_models` folder.
+* If you want to train the tracker without online template, download weights with the `wo_ot` suffix.
 
 ### Training
 * Using `run.sh` for training and evaluation (Linux with NVIDIA GPU only)
@@ -141,6 +145,20 @@ python profile_model.py MMLoRAT dinov2 --mixin_config base_378 --device cuda
 ...
 ```
 
+### Disable Online Template
+You can add `--mixin_config disable_online_template` in the command to disable the online template.
+
 ## Acknowledgements
 - This repo is based on [LoRAT](https://github.com/LitingLin/LoRAT), we thank for it's `trackit` framework, which helps us to quickly implement our ideas.
 - We thank the [rgbt](https://github.com/opacity-black/RGBT_toolkit) library for facilitating evaluation in a Python environment.
+
+## Citation
+If you find this code useful in your research, please consider citing:
+```
+@inproceedings{gola,
+  title={Group Orthogonal Low-Rank Adaptation for RGB-T Tracking},
+  author={Shao, Zekai and Hu, Yufan and Liu, jingyuan and Fan, Bin and Liu, Hongmin},
+  booktitle={AAAI},
+  year={2026}
+} 
+```

@@ -2,7 +2,7 @@
 # Licensed under Apache-2.0: http://www.apache.org/licenses/LICENSE-2.0
 # Add support for RGB-T dataset
 
-from typing import Tuple, Mapping, Any
+from typing import Tuple, Mapping, Any, Dict
 
 import safetensors
 import torch
@@ -17,7 +17,8 @@ from .modules.lora.merge import lora_merge_state_dict
 class MMLoRATBaseline_DINOv2(nn.Module):
     def __init__(self, vit: DinoVisionTransformer,
                  template_feat_size: Tuple[int, int],
-                 search_region_feat_size: Tuple[int, int]):
+                 search_region_feat_size: Tuple[int, int],
+                 enable_online_template: bool = True):
         super().__init__()
         assert template_feat_size[0] <= search_region_feat_size[0] and template_feat_size[1] <= search_region_feat_size[
             1]
@@ -36,19 +37,22 @@ class MMLoRATBaseline_DINOv2(nn.Module):
                                                            vit.patch_embed.patches_resolution,
                                                            num_prefix_tokens=0, interpolate_offset=0))
 
-        self.token_type_embed_v = nn.Parameter(torch.empty(5, self.embed_dim))
-        self.token_type_embed_i = nn.Parameter(torch.empty(5, self.embed_dim))
-        trunc_normal_(self.token_type_embed_v, std=.02)
-        trunc_normal_(self.token_type_embed_i, std=.02)
+        self.enable_online_template = enable_online_template
+
+        self._init_token_type_embed()
 
         self.head = MlpAnchorFreeHead(self.embed_dim, self.x_size)
 
-    def forward(self, z: torch.Tensor, x: torch.Tensor, d: torch.Tensor,
-                z_feat_mask: torch.Tensor, d_feat_mask: torch.Tensor):
+    def forward(self, z: torch.Tensor, x: torch.Tensor, z_feat_mask: torch.Tensor,
+                d: torch.Tensor = None, d_feat_mask: torch.Tensor = None):
         z_feat_v, z_feat_i = self._z_feat(z, z_feat_mask)
-        d_feat_v, d_feat_i = self._d_feat(d, d_feat_mask)
         x_feat_v, x_feat_i = self._x_feat(x)
-        x_feat = self._fusion(z_feat_v, x_feat_v, z_feat_i, x_feat_i, d_feat_v, d_feat_i)
+
+        if self.enable_online_template:
+            d_feat_v, d_feat_i = self._d_feat(d, d_feat_mask)
+            x_feat = self._fusion(z_feat_v, x_feat_v, z_feat_i, x_feat_i, d_feat_v, d_feat_i)
+        else:
+            x_feat = self._fusion(z_feat_v, x_feat_v, z_feat_i, x_feat_i)
         return self.head(x_feat)
 
     def _z_feat(self, z: torch.Tensor, z_feat_mask: torch.Tensor):
@@ -58,10 +62,10 @@ class MMLoRATBaseline_DINOv2(nn.Module):
         z_W, z_H = self.z_size
         z_v = z_v + self.pos_embed.view(1, self.x_size[1], self.x_size[0], self.embed_dim)[:, : z_H, : z_W, :].reshape(
             1, z_H * z_W, self.embed_dim)
-        z_v = z_v + self.token_type_embed_v[:2][z_feat_mask.flatten(1)]
-
         z_i = z_i + self.pos_embed.view(1, self.x_size[1], self.x_size[0], self.embed_dim)[:, : z_H, : z_W, :].reshape(
             1, z_H * z_W, self.embed_dim)
+
+        z_v = z_v + self.token_type_embed_v[:2][z_feat_mask.flatten(1)]
         z_i = z_i + self.token_type_embed_i[:2][z_feat_mask.flatten(1)]
 
         return z_v, z_i
@@ -73,10 +77,10 @@ class MMLoRATBaseline_DINOv2(nn.Module):
         d_W, d_H = self.d_size
         d_v = d_v + self.pos_embed.view(1, self.x_size[1], self.x_size[0], self.embed_dim)[:, : d_H, : d_W, :].reshape(
             1, d_H * d_W, self.embed_dim)
-        d_v = d_v + self.token_type_embed_v[2:4][d_feat_mask.flatten(1)]
-
         d_i = d_i + self.pos_embed.view(1, self.x_size[1], self.x_size[0], self.embed_dim)[:, : d_H, : d_W, :].reshape(
             1, d_H * d_W, self.embed_dim)
+
+        d_v = d_v + self.token_type_embed_v[2:4][d_feat_mask.flatten(1)]
         d_i = d_i + self.token_type_embed_i[2:4][d_feat_mask.flatten(1)]
 
         return d_v, d_i
@@ -86,14 +90,24 @@ class MMLoRATBaseline_DINOv2(nn.Module):
         x_i = self.patch_embed(x[:, 3:])
 
         x_v = x_v + self.pos_embed
-        x_v = x_v + self.token_type_embed_v[4].view(1, 1, self.embed_dim)
         x_i = x_i + self.pos_embed
-        x_i = x_i + self.token_type_embed_i[4].view(1, 1, self.embed_dim)
+
+        if self.enable_online_template:
+            x_v = x_v + self.token_type_embed_v[4].view(1, 1, self.embed_dim)
+            x_i = x_i + self.token_type_embed_i[4].view(1, 1, self.embed_dim)
+        else:
+            x_v = x_v + self.token_type_embed_v[2].view(1, 1, self.embed_dim)
+            x_i = x_i + self.token_type_embed_i[2].view(1, 1, self.embed_dim)
+
         return x_v, x_i
 
     def _fusion(self, z_feat_v: torch.Tensor, x_feat_v: torch.Tensor, z_feat_i: torch.Tensor, x_feat_i: torch.Tensor,
-                d_feat_v: torch.Tensor, d_feat_i: torch.Tensor):
-        fusion_feat = torch.cat((z_feat_v, x_feat_v, z_feat_i, x_feat_i, d_feat_v, d_feat_i), dim=1)
+                d_feat_v: torch.Tensor = None, d_feat_i: torch.Tensor = None):
+        if self.enable_online_template:
+            fusion_feat = torch.cat((z_feat_v, x_feat_v, z_feat_i, x_feat_i, d_feat_v, d_feat_i), dim=1)
+        else:
+            fusion_feat = torch.cat((z_feat_v, x_feat_v, z_feat_i, x_feat_i), dim=1)
+
         for i in range(len(self.blocks)):
             fusion_feat = self.blocks[i](fusion_feat)
         fusion_feat = self.norm(fusion_feat)
@@ -105,4 +119,16 @@ class MMLoRATBaseline_DINOv2(nn.Module):
 
     def load_state_dict_from_file(self, path: str, **kwargs):
         state_dict = safetensors.torch.load_file(path)
-        return self.load_state_dict(state_dict, strict=False)
+        return self.load_state_dict(state_dict, strict=False, **kwargs)
+
+    def _init_token_type_embed(self):
+        if self.enable_online_template:
+            self.token_type_embed_v = nn.Parameter(torch.zeros(5, self.embed_dim))
+            self.token_type_embed_i = nn.Parameter(torch.zeros(5, self.embed_dim))
+            trunc_normal_(self.token_type_embed_v, std=.02)
+            trunc_normal_(self.token_type_embed_i, std=.02)
+        else:
+            self.token_type_embed_v = nn.Parameter(torch.zeros(3, self.embed_dim))
+            self.token_type_embed_i = nn.Parameter(torch.zeros(3, self.embed_dim))
+            trunc_normal_(self.token_type_embed_v, std=.02)
+            trunc_normal_(self.token_type_embed_i, std=.02)

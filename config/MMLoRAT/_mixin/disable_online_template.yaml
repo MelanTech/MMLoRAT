@@ -1,0 +1,27 @@
+- path: "run.data.train.siamese_training_pair_sampling.online_template_sample"
+  value: false
+
+- path: "run.data.train.transform.augmentation"
+  action: "replace"
+  value:
+      - type: "horizontal_flip"
+        target: [ "template", "search_region" ]
+        probability: 0.5
+        joint: false
+      - type: "color_jitter_mm"
+        target: [ "template", "search_region" ]
+        brightness: 0.4
+        contrast: 0.4
+        saturation: 0.4
+        joint: false
+      - type: "DeiT_3_aug_mm"
+        target: [ "template", "search_region" ]
+        joint: true
+
+- path: "common.enable_online_template"
+  value: false
+
+- path: "run.runner.test.evaluator.pipeline.plugin"
+  action: "replace"
+  value:
+    - type: "template_foreground_indicating_mask_generation"

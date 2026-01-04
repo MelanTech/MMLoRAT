@@ -60,6 +60,67 @@ class SiamTrackerTrainingPairProcessor(SiameseTrackerTrain_DataTransform):
         self.visualize = visualize
 
     def __call__(self, training_pair: SiameseTrainingPair, rng_engine: np.random.Generator):
+        if training_pair.online is None:
+            return self._process(training_pair, rng_engine)
+        else:
+            return self._process_online(training_pair, rng_engine)
+
+    def _process(self, training_pair: SiameseTrainingPair, rng_engine: np.random.Generator):
+        context = {'is_positive': training_pair.is_positive,
+                   'z_bbox': training_pair.template.object_bbox,
+                   'x_bbox': training_pair.search.object_bbox,
+                   }
+
+        assert self.template_siamfc_cropping.prepare('z', rng_engine, context)
+        if not self.search_region_siamfc_cropping.prepare('x', rng_engine, context):
+            return None
+
+        is_positive = training_pair.is_positive
+
+        image_decoding_cache = {}
+        if isinstance(training_pair.template, MMOTFrameInfo):
+            _decode_mmot_image_with_cache('z', training_pair.template, image_decoding_cache, context)
+            _decode_mmot_image_with_cache('x', training_pair.search, image_decoding_cache, context)
+        else:
+            _decode_image_with_cache('z', training_pair.template, image_decoding_cache, context)
+            _decode_image_with_cache('x', training_pair.search, image_decoding_cache, context)
+        del image_decoding_cache
+
+        self.template_siamfc_cropping.do('z', context)
+        self.search_region_siamfc_cropping.do('x', context)
+
+        self._do_augmentation(context, rng_engine)
+
+        _bbox_clip_to_image_boundary_(context['z_cropped_bbox'], context['z_cropped_image'])
+        _bbox_clip_to_image_boundary_(context['x_cropped_bbox'], context['x_cropped_image'])
+
+        self.image_normalize_transform_(context['z_cropped_image'])
+        self.image_normalize_transform_(context['x_cropped_image'])
+
+        data = {}
+
+        if self.additional_processors is not None:
+            for processor in self.additional_processors:
+                processor(training_pair, context, data, rng_engine)
+
+        data['z_cropped_image'] = context['z_cropped_image']
+        data['x_cropped_image'] = context['x_cropped_image']
+
+        data['is_positive'] = is_positive
+
+        if self.visualize:
+            from trackit.data.context.worker import get_current_worker_info
+            from .visualization import visualize_siam_tracker_training_pair_processor
+            output_path = get_current_worker_info().get_output_path()
+
+            if output_path is not None:
+                output_path = os.path.join(output_path, 'pos')
+                visualize_siam_tracker_training_pair_processor(output_path, training_pair, context,
+                                                               self.norm_stats_dataset_name)
+
+        return data
+
+    def _process_online(self, training_pair: SiameseTrainingPair, rng_engine: np.random.Generator):
         context = {'is_positive': training_pair.is_positive,
                    'z_bbox': training_pair.template.object_bbox,
                    'x_bbox': training_pair.search.object_bbox,
@@ -81,13 +142,14 @@ class SiamTrackerTrainingPairProcessor(SiameseTrackerTrain_DataTransform):
         else:
             _decode_image_with_cache('z', training_pair.template, image_decoding_cache, context)
             _decode_image_with_cache('x', training_pair.search, image_decoding_cache, context)
+            _decode_image_with_cache('d', training_pair.search, image_decoding_cache, context)
         del image_decoding_cache
 
         self.template_siamfc_cropping.do('z', context)
         self.search_region_siamfc_cropping.do('x', context)
         self.template_siamfc_cropping.do('d', context)
 
-        self._do_augmentation(context, rng_engine)
+        self._do_augmentation_online(context, rng_engine)
 
         _bbox_clip_to_image_boundary_(context['z_cropped_bbox'], context['z_cropped_image'])
         _bbox_clip_to_image_boundary_(context['x_cropped_bbox'], context['x_cropped_image'])
@@ -122,6 +184,20 @@ class SiamTrackerTrainingPairProcessor(SiameseTrackerTrain_DataTransform):
         return data
 
     def _do_augmentation(self, context: dict, rng_engine: np.random.Generator):
+        from .augmentation import AnnotatedImage
+        augmentation_context = {'template': [AnnotatedImage(context['z_cropped_image'], context['z_cropped_bbox'])],
+                                'search_region': [
+                                    AnnotatedImage(context['x_cropped_image'], context['x_cropped_bbox'])]}
+
+        self.augmentation_pipeline(augmentation_context, rng_engine)
+
+        context['z_cropped_image'] = augmentation_context['template'][0].image
+        context['z_cropped_bbox'] = augmentation_context['template'][0].bbox
+
+        context['x_cropped_image'] = augmentation_context['search_region'][0].image
+        context['x_cropped_bbox'] = augmentation_context['search_region'][0].bbox
+
+    def _do_augmentation_online(self, context: dict, rng_engine: np.random.Generator):
         from .augmentation import AnnotatedImage
         augmentation_context = {'template': [AnnotatedImage(context['z_cropped_image'], context['z_cropped_bbox'])],
                                 'search_region': [
@@ -220,9 +296,12 @@ class SiamTrackerTrainingPairProcessorBatchCollator:
     def __call__(self, batch: Sequence[Mapping], collated: TrainData):
         collated.input.update({
             'z': collate_element_as_torch_tensor(batch, 'z_cropped_image'),
-            'x': collate_element_as_torch_tensor(batch, 'x_cropped_image'),
-            'd': collate_element_as_torch_tensor(batch, 'd_cropped_image')
+            'x': collate_element_as_torch_tensor(batch, 'x_cropped_image')
         })
+
+        if batch and 'd_cropped_image' in batch[0]:
+            collated.input['d'] = collate_element_as_torch_tensor(batch, 'd_cropped_image')
+
         collated.miscellanies.update({'is_positive': collate_element_as_np_array(batch, 'is_positive')})
 
         if self.additional_collators is not None:

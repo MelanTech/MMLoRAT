@@ -60,14 +60,18 @@ def _prepare_siamese_training_pair(global_job_index: int, batch_element_index: i
     cache = {}
     _decode_with_cache('z', training_pair.z, datasets, cache, result, rng_engine, prefetch)
     _decode_with_cache('x', training_pair.x, datasets, cache, result, rng_engine, prefetch)
-    _decode_with_cache('d', training_pair.d, datasets, cache, result, rng_engine, prefetch)
-    decoded_training_pair = SiameseTrainingPair(training_pair.is_positive, result['z'], result['x'], result['d'])
+    if training_pair.d is not None:
+        _decode_with_cache('d', training_pair.d, datasets, cache, result, rng_engine, prefetch)
+        decoded_training_pair = SiameseTrainingPair(training_pair.is_positive, result['z'], result['x'], result['d'])
+    else:
+        decoded_training_pair = SiameseTrainingPair(training_pair.is_positive, result['z'], result['x'], None)
 
     # bug check
     if decoded_training_pair.is_positive:
         assert decoded_training_pair.template.object_exists
         assert decoded_training_pair.search.object_exists
-        assert decoded_training_pair.online.object_exists
+        if decoded_training_pair.online is not None:
+            assert decoded_training_pair.online.object_exists
 
     return global_job_index, batch_element_index, decoded_training_pair
 

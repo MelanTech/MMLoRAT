@@ -20,7 +20,8 @@ class SiamFCTrainingPairSampler:
                  siamese_sampling_disable_frame_range_constraint_if_search_frame_not_found: bool,
                  negative_sample_weight: float,
                  negative_sample_generation_methods: Sequence[SiamesePairNegativeSamplingMethod],
-                 negative_sample_generation_method_weights: Optional[np.ndarray]):
+                 negative_sample_generation_method_weights: Optional[np.ndarray],
+                 online_template_sample: bool):
         self.datasets = datasets
 
         dataset_weights = np.array(dataset_weights, dtype=np.float64)
@@ -36,6 +37,8 @@ class SiamFCTrainingPairSampler:
         self.negative_sample_weight = negative_sample_weight
         self.negative_sample_generation_methods = negative_sample_generation_methods
         self.negative_sample_generation_method_weights = negative_sample_generation_method_weights
+
+        self.online_template_sample = online_template_sample
 
         if len(negative_sample_generation_methods) > 0:
             distractor_picker_required = False
@@ -71,16 +74,19 @@ class SiamFCTrainingPairSampler:
                 self.siamese_sampling_frame_range_auto_extend_step,
                 self.siamese_sampling_frame_range_auto_extend_max_retry_count,
                 self.siamese_sampling_disable_frame_range_constraint_if_search_frame_not_found,
-                online_sampling=True
+                online_sampling=self.online_template_sample
             )
 
-            if len(frame_indices) == 2:
+            if not self.online_template_sample and len(frame_indices) == 1:
+                frame_indices = (frame_indices[0], frame_indices[0])
+            elif self.online_template_sample and len(frame_indices) == 2:
                 frame_indices = (frame_indices[0], frame_indices[0], frame_indices[1])
 
             training_pair = SiameseTrainingPairSamplingResult(
                 SamplingResult_Element(dataset_index, sequence_index, track.get_object_id(), frame_indices[0]),
                 SamplingResult_Element(dataset_index, sequence_index, track.get_object_id(), frame_indices[1]),
-                SamplingResult_Element(dataset_index, sequence_index, track.get_object_id(), frame_indices[2]),
+                SamplingResult_Element(dataset_index, sequence_index, track.get_object_id(),
+                                       frame_indices[2]) if self.online_template_sample else None,
                 True,
             )
         else:
@@ -106,4 +112,5 @@ class SiamFCTrainingPairSampler:
                 SamplingResult_Element(dataset_index, sequence_index, track.get_object_id(), frame.get_frame_index()),
                 SamplingResult_Element(x_dataset_index, x_sequence_index, x_track.get_object_id(), x_frame.get_frame_index()),
                 False)
+
         return training_pair

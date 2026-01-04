@@ -21,6 +21,7 @@ def build_one_stream_tracker_pipeline(pipeline_config: dict, config: dict, devic
         build_post_process(pipeline_config['post_process'], common_config, device),
         build_segmentify_post_processor(pipeline_config['segmentify'], common_config,
                                         device) if 'segmentify' in pipeline_config else None,
+        common_config['enable_online_template'],
         build_template_updater(pipeline_config['template_update'], common_config, device),
         common_config['interpolation_mode'], common_config['interpolation_align_corners'],
         common_config['normalization'],

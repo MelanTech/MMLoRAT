@@ -15,6 +15,7 @@ def build_SiamFC_training_pair_sampler(datasets: Sequence[TrackingDataset], data
     positive_sample_config = siamese_sampling_config['positive_sample']
     siamese_sampling_method = SiamesePairSamplingMethod[positive_sample_config['sample_mode']]
     siamese_sampling_frame_range = positive_sample_config['max_gaps']
+    online_template_sample = siamese_sampling_config['online_template_sample']
     if 'auto_extend' in positive_sample_config:
         siamese_sampling_frame_range_auto_extend_step = positive_sample_config['auto_extend']['step']
         siamese_sampling_frame_range_auto_extend_max_retry_count = positive_sample_config['auto_extend']['max_retry_count']
@@ -50,4 +51,5 @@ def build_SiamFC_training_pair_sampler(datasets: Sequence[TrackingDataset], data
                                      siamese_sampling_disable_frame_range_constraint_if_search_frame_not_found=siamese_sampling_disable_frame_range_constraint_if_search_frame_not_found,
                                      negative_sample_weight=negative_sample_weight,
                                      negative_sample_generation_methods=negative_sample_methods,
-                                     negative_sample_generation_method_weights=negative_sample_methods_weight)
+                                     negative_sample_generation_method_weights=negative_sample_methods_weight,
+                                     online_template_sample=online_template_sample)

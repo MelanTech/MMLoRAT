@@ -30,4 +30,4 @@ class SiameseTrainingPair:
     is_positive: bool
     template: Union[SOTFrameInfo, MMOTFrameInfo]
     search: Union[SOTFrameInfo, MMOTFrameInfo]
-    online: Union[SOTFrameInfo, MMOTFrameInfo]
+    online: Union[SOTFrameInfo, MMOTFrameInfo] | None

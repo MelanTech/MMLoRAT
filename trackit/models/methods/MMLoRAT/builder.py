@@ -20,7 +20,9 @@ def build_MMLoRAT_model(config: dict, model_impl_suggestions: ModelImplSuggestio
     if model_type == 'dinov2':
         if model_impl_suggestions.optimize_for_inference:
             from .mmlorat_full_finetune import MMLoRATBaseline_DINOv2
-            model = MMLoRATBaseline_DINOv2(backbone, common_config['template_feat_size'], common_config['search_region_feat_size'])
+            model = MMLoRATBaseline_DINOv2(backbone, common_config['template_feat_size'],
+                                           common_config['search_region_feat_size'],
+                                           common_config['enable_online_template'])
 
             # Zekai Shao: When testing alone, weights may not load successfully.
             # So we need to load weights again.
@@ -31,12 +33,17 @@ def build_MMLoRAT_model(config: dict, model_impl_suggestions: ModelImplSuggestio
                     model.load_state_dict_from_file(path)
         else:
             from .mmlorat import MMLoRAT_DINOv2
-            model = MMLoRAT_DINOv2(backbone, common_config['template_feat_size'], common_config['search_region_feat_size'],
-                                 model_config['lora']['r'], model_config['lora']['alpha'],
-                                 model_config['lora']['dropout'], model_config['lora']['use_rslora'])
+            model = MMLoRAT_DINOv2(backbone, common_config['template_feat_size'],
+                                   common_config['search_region_feat_size'],
+                                   model_config['lora']['r'], model_config['lora']['alpha'],
+                                   model_config['lora']['dropout'], model_config['lora']['use_rslora'],
+                                   common_config['enable_online_template'])
+
     elif model_type == 'dinov2_full_finetune':
         from .mmlorat_full_finetune import MMLoRATBaseline_DINOv2
-        model = MMLoRATBaseline_DINOv2(backbone, common_config['template_feat_size'], common_config['search_region_feat_size'])
+        model = MMLoRATBaseline_DINOv2(backbone, common_config['template_feat_size'],
+                                       common_config['search_region_feat_size'],
+                                       common_config['enable_online_template'])
     else:
         raise NotImplementedError(f"Model type '{model_type}' is not supported.")
     return model

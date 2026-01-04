@@ -33,6 +33,7 @@ class OneStreamTracker_Evaluation_MainPipeline(TrackerEvaluationPipeline):
                  search_curation_parameter_provider_factory: Callable[[], CroppingParameterProvider],
                  model_output_post_process: TrackerOutputPostProcess,
                  segmentify_post_process: Optional[Segmentify_PostProcessor],
+                 enable_online_template: bool,
                  template_updater: TemplateUpdater,
                  interpolation_mode: str, interpolation_align_corners: bool,
                  norm_stats_dataset_name: str,
@@ -51,7 +52,10 @@ class OneStreamTracker_Evaluation_MainPipeline(TrackerEvaluationPipeline):
         self.image_normalization_transform_ = get_dataset_norm_stats_transform(norm_stats_dataset_name, inplace=True)
         self.visualization = visualization
 
-        self.template_updater = template_updater
+        self.enable_online_template = enable_online_template
+
+        if self.enable_online_template:
+            self.template_updater = template_updater
 
     def start(self, max_batch_size: int, global_shared_objects):
         if len(self.image_normalization_transform_.mean) == 6:
@@ -69,7 +73,8 @@ class OneStreamTracker_Evaluation_MainPipeline(TrackerEvaluationPipeline):
         self.all_tracking_template_cache = CacheService(max_batch_size,
                                                         TensorCache(max_batch_size, template_shape, self.device))
 
-        self.template_updater.start(max_batch_size, template_shape)
+        if self.enable_online_template:
+            self.template_updater.start(max_batch_size, template_shape)
 
         global_shared_objects['template_cache'] = self.all_tracking_template_cache
         global_shared_objects['template_image_mean_cache'] = self.all_tracking_template_image_mean_cache
@@ -92,7 +97,8 @@ class OneStreamTracker_Evaluation_MainPipeline(TrackerEvaluationPipeline):
         del self.all_tracking_template_image_mean_cache
         del self.all_tracking_task_local_contexts
 
-        self.template_updater.stop()
+        if self.enable_online_template:
+            self.template_updater.stop()
 
     def begin(self, context):
         for task in context.input_data.tasks:
@@ -112,7 +118,8 @@ class OneStreamTracker_Evaluation_MainPipeline(TrackerEvaluationPipeline):
                 task_context.siamfc_cropping_params_provider = cropping_params_provider
                 task_context.reset_frame_indices.append(init_context.frame_index)
 
-                self.template_updater.initialize(task.id, init_context.input_data['curated_image'])
+                if self.enable_online_template:
+                    self.template_updater.initialize(task.id, init_context.input_data['curated_image'])
 
     def prepare_tracking(self, context, model_input_params):
         num_tracking_sequence = 0
@@ -148,12 +155,15 @@ class OneStreamTracker_Evaluation_MainPipeline(TrackerEvaluationPipeline):
         context.temporary_objects['x_cropping_params'] = self.cropping_parameter_cache[: num_tracking_sequence, ...]
 
         z = self.all_tracking_template_cache.get_batch(task_ids)
-        d = self.template_updater.get_batch(task_ids)
         x = self.search_region_cache[: num_tracking_sequence, ...]
         x = x / 255.
         self.image_normalization_transform_(x)
 
-        model_input_params.update({'z': z, 'x': x, 'd': d})
+        if self.enable_online_template:
+            d = self.template_updater.get_batch(task_ids)
+            model_input_params.update({'z': z, 'x': x, 'd': d})
+        else:
+            model_input_params.update({'z': z, 'x': x})
 
     def on_tracked(self, model_outputs, context):
         if model_outputs is None:
@@ -250,10 +260,11 @@ class OneStreamTracker_Evaluation_MainPipeline(TrackerEvaluationPipeline):
         assert context.result.is_all_submitted()
 
     def do_custom_update(self, model, raw_model, context):
-        for task in context.input_data.tasks:
-            self.template_updater.update(task.id, context.result.get(task.id).confidence,
-                                         task.tracker_do_tracking_context.input_data['image'],
-                                         context.result.get(task.id).box)
+        if self.enable_online_template:
+            for task in context.input_data.tasks:
+                self.template_updater.update(task.id, context.result.get(task.id).confidence,
+                                             task.tracker_do_tracking_context.input_data['image'],
+                                             context.result.get(task.id).box)
 
     def end(self, context):
         for task in context.input_data.tasks:
@@ -262,4 +273,5 @@ class OneStreamTracker_Evaluation_MainPipeline(TrackerEvaluationPipeline):
                 self.all_tracking_template_image_mean_cache.delete(task.id)
                 self.all_tracking_task_local_contexts.pop(task.id)
 
-                self.template_updater.delete(task.id)
+                if self.enable_online_template:
+                    self.template_updater.delete(task.id)
