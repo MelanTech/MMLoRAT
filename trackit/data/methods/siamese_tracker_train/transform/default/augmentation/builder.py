@@ -33,25 +33,6 @@ def build_augmentation_pipeline(augmentation_pipline_config: list):
                 AugmentationConfig(augmentation_config['target'],
                                    DeiT3Augmentation(),
                                    augmentation_config.get('joint', True)))
-
-        # Zekai Shao: Add RGB-T data augmentation builder
-        elif augmentation_config['type'] == 'color_jitter_mm':
-            from .color_jitter import MMColorJitter
-
-            brightness_factor = augmentation_config['brightness']
-            contrast_factor = augmentation_config['contrast']
-            saturation_factor = augmentation_config['saturation']
-
-            pipelines.append(
-                AugmentationConfig(augmentation_config['target'],
-                                   MMColorJitter(brightness_factor, contrast_factor, saturation_factor),
-                                   augmentation_config.get('joint', True)))
-        elif augmentation_config['type'] == 'DeiT_3_aug_mm':
-            from .deit_3_augmentation import MMDeiT3Augmentation
-            pipelines.append(
-                AugmentationConfig(augmentation_config['target'],
-                                   MMDeiT3Augmentation(),
-                                   augmentation_config.get('joint', True)))
         else:
             raise ValueError(f"Unknown augmentation type: {augmentation_config['type']}")
     return AugmentationPipeline(pipelines)

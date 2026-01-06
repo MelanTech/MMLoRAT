@@ -89,13 +89,13 @@ data:
           target: ["template", "search_region", "online"]
           probability: 0.5
           joint: false
-        - type: "color_jitter_mm"
+        - type: "color_jitter"
           target: ["template", "search_region", "online"]
           brightness: 0.4
           contrast: 0.4
           saturation: 0.4
           joint: false
-        - type: "DeiT_3_aug_mm"
+        - type: "DeiT_3_aug"
           target: ["template", "search_region", "online"]
           joint: true
       plugin:

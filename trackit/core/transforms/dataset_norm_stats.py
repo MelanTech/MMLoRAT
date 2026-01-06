@@ -1,6 +1,8 @@
 import torchvision.transforms as transforms
 from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD, OPENAI_CLIP_STD, OPENAI_CLIP_MEAN
 
+from trackit.core.transforms.constants import LASHER_MEAN, LASHER_STD
+
 
 def get_dataset_norm_stats_transform(dataset: str, inplace: bool):
     """
@@ -21,9 +23,19 @@ def get_dataset_norm_stats_transform(dataset: str, inplace: bool):
         return transforms.Normalize(mean=OPENAI_CLIP_MEAN, std=OPENAI_CLIP_STD, inplace=inplace)
 
     # Zekai Shao: Add RGB-T dataset normalization
-    elif dataset == 'mm':
-        return transforms.Normalize(mean=[0.485, 0.456, 0.406, 0.449, 0.449, 0.449],
-                                    std=[0.229, 0.224, 0.225, 0.226, 0.226, 0.226], inplace=inplace)
+    elif dataset == 'lasher':
+        return transforms.Normalize(mean=LASHER_MEAN, std=LASHER_STD, inplace=inplace)
+    elif dataset == 'joint':
+        def dynamic_normalize(x):
+            channels = x.shape[0] if len(x.shape) == 3 else x.shape[1]
+            if channels == 3:
+                return transforms.Normalize(mean=IMAGENET_DEFAULT_MEAN, std=IMAGENET_DEFAULT_STD, inplace=inplace)(x)
+            elif channels == 6:
+                return transforms.Normalize(mean=LASHER_MEAN, std=LASHER_STD, inplace=inplace)(x)
+            else:
+                raise NotImplementedError
+
+        return transforms.Lambda(dynamic_normalize)
     else:
         raise NotImplementedError()
 

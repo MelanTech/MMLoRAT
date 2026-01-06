@@ -1,6 +1,9 @@
 # MMLoRAT: A Multi-Modal Version of LoRAT
 
 ## News
+**[Jan. 6, 2026]**
+* Add SOT joint training support.
+
 **[Jan. 4, 2026]**
 * Add online template enable/disable support.
 

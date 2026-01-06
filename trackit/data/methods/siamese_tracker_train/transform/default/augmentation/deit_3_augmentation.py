@@ -62,40 +62,38 @@ class gray_scale(object):
         return images
 
 
+# Zekai Shao: Add support for RGB-T data
 class DeiT3Augmentation(ImageOnlyAugmentation):
     def __init__(self):
-        self.augmentations = ([gray_scale(p=1.0), Solarization(p=1.0), GaussianBlur(p=1.0)])
+        self.augmentations = [gray_scale(p=1.0), Solarization(p=1.0), GaussianBlur(p=1.0)]
+
+    @staticmethod
+    def _process_image_group(img_group: Sequence[torch.Tensor],
+                             aug, rng_engine: np.random.Generator) -> Sequence[torch.Tensor]:
+        pil_imgs = tuple(F.to_pil_image(img, mode='RGB') for img in img_group)
+        augmented_pil = aug(pil_imgs, rng_engine)
+        return tuple(F.to_tensor(img) for img in augmented_pil)
 
     def __call__(self, images: Sequence[torch.Tensor], rng_engine: np.random.Generator) -> Sequence[torch.Tensor]:
-        images = tuple(F.to_pil_image(img, mode='RGB') for img in images)
-
         aug_index = rng_engine.choice(3)
-        aug = self.augmentations[aug_index]
+        selected_aug = self.augmentations[aug_index]
 
-        images = aug(images, rng_engine)
+        channel_nums = [img.shape[0] for img in images]
+        if len(set(channel_nums)) != 1:
+            raise ValueError("All images should have the same number of channels")
+        c = channel_nums[0]
 
-        images = tuple(F.to_tensor(img) for img in images)
-        return images
+        if c == 3:
+            return self._process_image_group(images, selected_aug, rng_engine)
 
+        elif c == 6:
+            rgb_imgs = tuple(img[:3] for img in images)
+            thermal_imgs = tuple(img[3:] for img in images)
 
-# Zekai Shao: Add DeiT3Augmentation for RGB-T data
-class MMDeiT3Augmentation(ImageOnlyAugmentation):
-    def __init__(self):
-        self.augmentations = ([gray_scale(p=1.0), Solarization(p=1.0), GaussianBlur(p=1.0)])
+            augmented_rgb = self._process_image_group(rgb_imgs, selected_aug, rng_engine)
+            augmented_thermal = self._process_image_group(thermal_imgs, selected_aug, rng_engine)
 
-    def __call__(self, images: Sequence[torch.Tensor], rng_engine: np.random.Generator) -> Sequence[torch.Tensor]:
-        images_v = tuple(F.to_pil_image(img[:3], mode='RGB') for img in images)
-        images_i = tuple(F.to_pil_image(img[3:], mode='RGB') for img in images)
+            return tuple(torch.cat([rgb, thermal], dim=0) for rgb, thermal in zip(augmented_rgb, augmented_thermal))
 
-        aug_index = rng_engine.choice(3)
-        aug = self.augmentations[aug_index]
-
-        images_v = aug(images_v, rng_engine)
-        images_i = aug(images_i, rng_engine)
-
-        images_v = tuple(F.to_tensor(img) for img in images_v)
-        images_i = tuple(F.to_tensor(img) for img in images_i)
-
-        images = tuple(torch.cat([v, i], dim=0) for v, i in zip(images_v, images_i))
-
-        return images
+        else:
+            raise ValueError(f"Unsupported image channel number: {c}")

@@ -32,16 +32,37 @@ def _check_input(value, name, center=1, bound=(0, float("inf")), clip_first_on_z
         return tuple(value)
 
 
+# Zekai Shao: Add support for RGB-T data
 class ColorJitter(ImageOnlyAugmentation):
     def __init__(self,
                  brightness: Union[float, Tuple[float, float]] = 0,
                  contrast: Union[float, Tuple[float, float]] = 0,
                  saturation: Union[float, Tuple[float, float]] = 0,
                  hue: Union[float, Tuple[float, float]] = 0):
+
         self.brightness = _check_input(brightness, "brightness")
         self.contrast = _check_input(contrast, "contrast")
         self.saturation = _check_input(saturation, "saturation")
         self.hue = _check_input(hue, "hue", center=0, bound=(-0.5, 0.5), clip_first_on_zero=False)
+
+        self.augment_functions = {
+            0: F.adjust_brightness,
+            1: F.adjust_contrast,
+            2: F.adjust_saturation,
+            3: F.adjust_hue
+        }
+
+    @staticmethod
+    def _process_single_image(img: torch.Tensor, augment_fn, factor: float) -> torch.Tensor:
+        c = img.shape[0]
+        if c == 3:
+            return augment_fn(img, factor)
+        elif c == 6:
+            rgb_part = augment_fn(img[:3], factor)
+            thermal_part = augment_fn(img[3:], factor)
+            return torch.cat([rgb_part, thermal_part], dim=0)
+        else:
+            raise ValueError(f"Unsupported image channel number: {c}")
 
     def __call__(self, images: Sequence[torch.Tensor], rng_engine: np.random.Generator) -> Sequence[torch.Tensor]:
         fn_idx = rng_engine.permutation(4)
@@ -54,66 +75,12 @@ class ColorJitter(ImageOnlyAugmentation):
             rng_engine.uniform(self.saturation[0], self.saturation[1]))
         hue_factor = None if self.hue is None else float(rng_engine.uniform(self.hue[0], self.hue[1]))
 
-        for fn_id in fn_idx:
-            if fn_id == 0 and brightness_factor is not None:
-                images = tuple(F.adjust_brightness(img, brightness_factor) for img in images)
-            elif fn_id == 1 and contrast_factor is not None:
-                images = tuple(F.adjust_contrast(img, contrast_factor) for img in images)
-            elif fn_id == 2 and saturation_factor is not None:
-                images = tuple(F.adjust_saturation(img, saturation_factor) for img in images)
-            elif fn_id == 3 and hue_factor is not None:
-                images = tuple(F.adjust_hue(img, hue_factor) for img in images)
-
-        return images
-
-
-# Zekai Shao: Add ColorJitter for RGB-T data
-class MMColorJitter(ImageOnlyAugmentation):
-    def __init__(self,
-                 brightness: Union[float, Tuple[float, float]] = 0,
-                 contrast: Union[float, Tuple[float, float]] = 0,
-                 saturation: Union[float, Tuple[float, float]] = 0,
-                 hue: Union[float, Tuple[float, float]] = 0):
-        self.brightness = _check_input(brightness, "brightness")
-        self.contrast = _check_input(contrast, "contrast")
-        self.saturation = _check_input(saturation, "saturation")
-        self.hue = _check_input(hue, "hue", center=0, bound=(-0.5, 0.5), clip_first_on_zero=False)
-
-    def __call__(self, images: Sequence[torch.Tensor], rng_engine: np.random.Generator) -> Sequence[torch.Tensor]:
-        fn_idx = rng_engine.permutation(4)
-
-        brightness_factor = None if self.brightness is None else float(
-            rng_engine.uniform(self.brightness[0], self.brightness[1]))
-        contrast_factor = None if self.contrast is None else float(
-            rng_engine.uniform(self.contrast[0], self.contrast[1]))
-        saturation_factor = None if self.saturation is None else float(
-            rng_engine.uniform(self.saturation[0], self.saturation[1]))
-        hue_factor = None if self.hue is None else float(rng_engine.uniform(self.hue[0], self.hue[1]))
+        augment_factors = [brightness_factor, contrast_factor, saturation_factor, hue_factor]
 
         for fn_id in fn_idx:
-            if fn_id == 0 and brightness_factor is not None:
-                images = tuple(
-                    torch.cat([F.adjust_brightness(img[:3], brightness_factor),
-                               F.adjust_brightness(img[3:], brightness_factor)], dim=0)
-                    for img in images
-                )
-            elif fn_id == 1 and contrast_factor is not None:
-                images = tuple(
-                    torch.cat([F.adjust_contrast(img[:3], contrast_factor),
-                               F.adjust_contrast(img[3:], contrast_factor)], dim=0)
-                    for img in images
-                )
-            elif fn_id == 2 and saturation_factor is not None:
-                images = tuple(
-                    torch.cat([F.adjust_saturation(img[:3], saturation_factor),
-                               F.adjust_saturation(img[3:], saturation_factor)], dim=0)
-                    for img in images
-                )
-            elif fn_id == 3 and hue_factor is not None:
-                images = tuple(
-                    torch.cat([F.adjust_hue(img[:3], hue_factor),
-                               F.adjust_hue(img[3:], hue_factor)], dim=0)
-                    for img in images
-                )
+            augment_fn = self.augment_functions[fn_id]
+            factor = augment_factors[fn_id]
+            if factor is not None:
+                images = tuple(self._process_single_image(img, augment_fn, factor) for img in images)
 
         return images

@@ -106,6 +106,10 @@ class SiamTrackerTrainingPairProcessor(SiameseTrackerTrain_DataTransform):
         data['z_cropped_image'] = context['z_cropped_image']
         data['x_cropped_image'] = context['x_cropped_image']
 
+        if isinstance(training_pair.template, SOTFrameInfo):
+            data['z_cropped_image'] = data['z_cropped_image'].repeat(2, 1, 1)
+            data['x_cropped_image'] = data['x_cropped_image'].repeat(2, 1, 1)
+
         data['is_positive'] = is_positive
 
         if self.visualize:
@@ -168,6 +172,11 @@ class SiamTrackerTrainingPairProcessor(SiameseTrackerTrain_DataTransform):
         data['z_cropped_image'] = context['z_cropped_image']
         data['x_cropped_image'] = context['x_cropped_image']
         data['d_cropped_image'] = context['d_cropped_image']
+
+        if isinstance(training_pair.template, SOTFrameInfo):
+            data['z_cropped_image'] = data['z_cropped_image'].repeat(2, 1, 1)
+            data['x_cropped_image'] = data['x_cropped_image'].repeat(2, 1, 1)
+            data['d_cropped_image'] = data['d_cropped_image'].repeat(2, 1, 1)
 
         data['is_positive'] = is_positive
 
