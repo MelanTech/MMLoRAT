@@ -23,14 +23,6 @@ def build_MMLoRAT_model(config: dict, model_impl_suggestions: ModelImplSuggestio
             model = MMLoRATBaseline_DINOv2(backbone, common_config['template_feat_size'],
                                            common_config['search_region_feat_size'],
                                            common_config['enable_online_template'])
-
-            # Zekai Shao: When testing alone, weights may not load successfully.
-            # So we need to load weights again.
-            # Use the weight loading function of the inference model
-            # to load the weights after merging the LoRA parameters
-            if config['model']['eval']:
-                for path in config['model']['weight_path']:
-                    model.load_state_dict_from_file(path)
         else:
             from .mmlorat import MMLoRAT_DINOv2
             model = MMLoRAT_DINOv2(backbone, common_config['template_feat_size'],

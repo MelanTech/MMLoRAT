@@ -117,10 +117,6 @@ class MMLoRATBaseline_DINOv2(nn.Module):
         state_dict = lora_merge_state_dict(self, state_dict)
         return super().load_state_dict(state_dict, **kwargs)
 
-    def load_state_dict_from_file(self, path: str, **kwargs):
-        state_dict = safetensors.torch.load_file(path)
-        return self.load_state_dict(state_dict, strict=False, **kwargs)
-
     def _init_token_type_embed(self):
         if self.enable_online_template:
             self.token_type_embed_v = nn.Parameter(torch.zeros(5, self.embed_dim))

@@ -34,6 +34,5 @@ model:
     alpha: 64
     dropout: 0.
     use_rslora: false
-  eval: false
 
 run: !include "../run.yaml"

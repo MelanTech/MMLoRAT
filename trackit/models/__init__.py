@@ -109,13 +109,17 @@ class ModelManager:
         else:
             _load_state_dict(self._newest_model, state_dict, strict, print_missing)
             self._version += 1
+            for (build_string, device), model_instance in list(self._model_instance_cache.items()):
+                model_instance._version = self._version
 
     def load_state_dict_from_file(self, state_file: str, strict: bool = False, print_missing: bool = True, use_safetensors: bool = True):
         if self._newest_model is None:
             self._states_to_be_load.append(lambda model: _load_state_dict_from_file(model, state_file, strict, print_missing, use_safetensors))
         else:
             _load_state_dict_from_file(self._newest_model, state_file, strict, print_missing, use_safetensors)
-            # self._version += 1
+            self._version += 1
+            for (build_string, device), model_instance in list(self._model_instance_cache.items()):
+                model_instance._version = self._version
 
     def state_dict(self) -> Optional[Mapping[str, Any]]:
         if self._offloaded_model_state_dict is not None:
