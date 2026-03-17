@@ -3,6 +3,7 @@ from trackit.data import DataPipeline
 from trackit.data.components.result_collector.builder import build_evaluation_result_collector
 from trackit.data.source.builder import build_data_source
 from trackit.data.sampling.per_frame.distributed_dynamic_eval_task_scheduling.builder import build_distributed_tracker_evaluation_task_dynamic_scheduler
+from trackit.data.sampling.per_frame.distributed_static_eval_task_scheduling.builder import build_distributed_tracker_evaluation_task_static_scheduler
 from trackit.data.utils.dataloader import build_dataloader
 from .orchestration import DistributedTrackerEvaluationProgressOrchestrationAndMonitoring
 from .worker import SiameseTrackEvaluationDataInputWorker, SiameseTrackEvaluationHostLoggingHook
@@ -18,9 +19,18 @@ def build_siamese_tracker_eval_data_pipeline(data_config: dict, build_context: B
 
     print('num_workers:', num_workers, '\tnum_io_threads:', num_io_threads)
 
-    sampler = build_distributed_tracker_evaluation_task_dynamic_scheduler(
-        datasets, data_config['sampler'], data_config['batch_size'],
-        num_workers if num_workers > 0 else 1, build_context)
+    sampler_type = data_config['sampler']['type']
+
+    if sampler_type == 'distributed_dynamic_scheduling':
+        sampler = build_distributed_tracker_evaluation_task_dynamic_scheduler(
+            datasets, data_config['sampler'], data_config['batch_size'],
+            num_workers if num_workers > 0 else 1, build_context)
+    elif sampler_type == 'distributed_static_scheduling':
+        sampler = build_distributed_tracker_evaluation_task_static_scheduler(
+            datasets, data_config['sampler'], data_config['batch_size'],
+            num_workers if num_workers > 0 else 1, build_context)
+    else:
+        raise NotImplementedError('Unknown sampler type: {}'.format(sampler_type))
 
     data_processor = build_data_transform(data_config['transform'], config)
 

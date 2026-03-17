@@ -117,7 +117,7 @@ data:
         !include "../_dataset/test-lasher.yaml"
 
     sampler:
-      type: "distributed_dynamic_scheduling"
+      type: "distributed_static_scheduling"
       shuffle: true
       repeat_times:
         - match:
