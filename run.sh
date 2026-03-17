@@ -48,6 +48,7 @@ wandb_offline=false
 do_sweep=false
 disable_wandb=false
 disable_ib=false
+dry_run=false
 
 method_name=$1
 config_name=$2
@@ -87,12 +88,13 @@ while [[ "$#" -gt 0 ]]; do
         --enable_ib) disable_ib=false ;;
         --weight_path) weight_paths+=("$2"); shift ;;
         --checkout) git_commit_hash="$2"; shift ;;
+        --dry_run) dry_run=true ;;
         *) echo "Unknown parameter passed: $1"; exit 1 ;;
     esac
     shift
 done
 
-if [[ -z "$output_dir" ]]; then
+if [[ -z "$output_dir" && "$dry_run" == false ]]; then
     echo "Please specify the output directory"
     exit 1
 fi
@@ -141,13 +143,18 @@ if [[ -z "$run_id" ]]; then
     run_id="$run_id-$DATE_WITH_TIME"
 fi
 
-#output_dir="$output_dir/$run_id"
-mkdir -p "$output_dir/$run_id"
-echo "Output directory: $output_dir/$run_id"
+if [[ "$dry_run" == false ]]; then
+    #output_dir="$output_dir/$run_id"
+    mkdir -p "$output_dir/$run_id"
+    echo "Output directory: $output_dir/$run_id"
+fi
 
 target_options=("$method_name" "$config_name")
 
-common_options=("--run_id" "$run_id" "--output_dir" "$output_dir")
+common_options=("--run_id" "$run_id")
+if [[ "$dry_run" == false ]]; then
+    common_options+=("--output_dir" "$output_dir")
+fi
 
 if [[ "$timm_offline" == true ]]; then
     export TIMM_USE_OLD_CACHE=1
@@ -200,11 +207,15 @@ if [[ -n "$resume_file_path" ]]; then
 fi
 
 if [[ "$do_sweep" == false ]]; then
-    output_log="$output_dir/$run_id/train_stdout.log"
-    if [[ -n "$NODE_RANK" ]]; then
-        output_log="$output_dir/$run_id/train_stdout.$NODE_RANK.log"
+    if [[ "$dry_run" == false ]]; then
+        output_log="$output_dir/$run_id/train_stdout.log"
+        if [[ -n "$NODE_RANK" ]]; then
+            output_log="$output_dir/$run_id/train_stdout.$NODE_RANK.log"
+        fi
+        PYTHONUNBUFFERED=1 OMP_NUM_THREADS=1 python main.py "${target_options[@]}" "${common_options[@]}" $([[ "$dry_run" == true ]] && echo "--dry_run") |& tee -a "$output_log"
+    else
+        PYTHONUNBUFFERED=1 OMP_NUM_THREADS=1 python main.py "${target_options[@]}" "${common_options[@]}" --dry_run
     fi
-    PYTHONUNBUFFERED=1 OMP_NUM_THREADS=1 python main.py "${target_options[@]}" "${common_options[@]}" |& tee -a "$output_log"
 else
     if [[ -n "$NUM_NODES" && "$NUM_NODES" -gt 1 ]]; then
         echo "Multi-nodes distributed training currently not support for hyper-parameter tunning"
@@ -225,5 +236,9 @@ else
         sweep_options+=("--agents_run_limit" "$sweep_run_times")
     fi
 
-    PYTHONUNBUFFERED=1 OMP_NUM_THREADS=1 python sweep.py "${target_options[@]}" "${sweep_options[@]}" "${common_options[@]}" |& tee -a "$output_log"
+    if [[ "$dry_run" == false ]]; then
+        PYTHONUNBUFFERED=1 OMP_NUM_THREADS=1 python sweep.py "${target_options[@]}" "${sweep_options[@]}" "${common_options[@]}" |& tee -a "$output_log"
+    else
+        PYTHONUNBUFFERED=1 OMP_NUM_THREADS=1 python sweep.py "${target_options[@]}" "${sweep_options[@]}" "${common_options[@]}" --dry_run
+    fi
 fi
