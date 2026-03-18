@@ -1,11 +1,23 @@
 # MMLoRAT: A Multi-Modal Version of LoRAT
 
 ## News
+**[Mar. 17, 2026]**
+* Fix evaluation weight loading failure due to unsynced `ModelManager` version.
+* Add distributed static evaluation task scheduler to ensure deterministic inference results.
+  * The original`distributed_dynamic_scheduling` introduces randomness in final results due to random task ordering caused by parallel execution. 
+  * The new task scheduler ensures deterministic final results via static task scheduling.
+  * Enable static task scheduling by setting `data.eval.sampler.type` to `distributed_static_scheduling` in `run.yaml`.
+  * Testing shows the `distributed_static_scheduling` has similar runtime to the original one, so it has been set as the default scheduler.
+* Add `--dry_run` support in `run.sh`.
+
 **[Jan. 6, 2026]**
 * Add SOT joint training support.
+  * For SOT datasets, RGB is simply treated as dual-modal data for implementation.
+  * Add `--mixin_config train_sot` in the command to enable SOT joint training (LasHeR, LaSOT, TrackingNet, COCO, GOT-10k).
 
 **[Jan. 4, 2026]**
 * Add online template enable/disable support.
+  * Add `--mixin_config disable_online_template` in the command to disable the online template.
 
 **[Dec. 23, 2025]**
 * We have released the code of MMLoRAT.
@@ -43,6 +55,7 @@ The paths should be organized as follows:
     |-- 1boygo
     |-- 1handsth
     ...
+...
 ```
 
 ### Prepare ```consts.yaml```
@@ -51,7 +64,8 @@ Fill in the paths.
 LasHeR_PATH: '/path/to/LasHeR0428/'
 RGBT234_PATH: '/path/to/RGBT234/'
 RGBT210_PATH: '/path/to/RGBT210/'
-GTOT_PATH: '/path/to/GTOT/'
+GTOT_PATH: 
+...
 ```
 
 ## Quick Start
@@ -87,17 +101,20 @@ bash run.sh MMLoRAT dinov2 --mixin_config giant --output_dir '/path/to/output' -
 # MMLoRAT-G-378
 bash run.sh MMLoRAT dinov2 --mixin_config giant_378 --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
 
+# Joint training
+bash run.sh MMLoRAT dinov2 --mixin_config train_sot --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
+
 # Evaluate all datasets after training.
-bash run.sh MMLoRAT dinov2 --mixin_config test-full --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
+bash run.sh MMLoRAT dinov2 --mixin_config test_full --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
 
 # Evaluate RGBT234 after training.
-bash run.sh MMLoRAT dinov2 --mixin_config test-rgbt234 --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
+bash run.sh MMLoRAT dinov2 --mixin_config test_rgbt234 --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
 
 # Evaluate RGBT210 after training.
-bash run.sh MMLoRAT dinov2 --mixin_config test-rgbt210 --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
+bash run.sh MMLoRAT dinov2 --mixin_config test_rgbt210 --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
 
 # Evaluate GTOT after training.
-bash run.sh MMLoRAT dinov2 --mixin_config test-gtot --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
+bash run.sh MMLoRAT dinov2 --mixin_config test_gtot --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
 ```
 
 ### Evaluation
@@ -108,16 +125,16 @@ You can use the following command to inference and evaluate separately:
 bash run.sh MMLoRAT dinov2 --mixin_config evaluation --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
 
 # Inference and evaluate on RGBT234.
-bash run.sh MMLoRAT dinov2 --mixin_config evaluation --mixin_config test-rgbt234 --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
+bash run.sh MMLoRAT dinov2 --mixin_config evaluation --mixin_config test_rgbt234 --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
 
 # Inference and evaluate on RGBT210.
-bash run.sh MMLoRAT dinov2 --mixin_config evaluation --mixin_config test-rgbt210 --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
+bash run.sh MMLoRAT dinov2 --mixin_config evaluation --mixin_config test_rgbt210 --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
 
 # Inference and evaluate on GTOT.
-bash run.sh MMLoRAT dinov2 --mixin_config evaluation --mixin_config test-gtot --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
+bash run.sh MMLoRAT dinov2 --mixin_config evaluation --mixin_config test_gtot --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
 
 # Inference and evaluate all datasets.
-bash run.sh MMLoRAT dinov2 --mixin_config evaluation --mixin_config test-full --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
+bash run.sh MMLoRAT dinov2 --mixin_config evaluation --mixin_config test_full --output_dir '/path/to/output' --weight_path '/path/to/weights' --device_ids 0,1 --disable_wandb
 ```
 
 You can evaluate the output results separately through the following steps:
@@ -147,9 +164,6 @@ python profile_model.py MMLoRAT dinov2 --device cuda
 python profile_model.py MMLoRAT dinov2 --mixin_config base_378 --device cuda
 ...
 ```
-
-### Disable Online Template
-You can add `--mixin_config disable_online_template` in the command to disable the online template.
 
 ## Acknowledgements
 - This repo is based on [LoRAT](https://github.com/LitingLin/LoRAT), we thank for it's `trackit` framework, which helps us to quickly implement our ideas.
