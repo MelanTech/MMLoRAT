@@ -1,7 +1,7 @@
 - path: "run.data.train.source"
   value:
     type: "dataset"
-    parameters: !include "../../_dataset/train-joint.yaml"
+    parameters: !include "../../_dataset/train_joint.yaml"
 
 - path: "common.normalization"
   action: "replace"
