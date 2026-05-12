@@ -115,14 +115,15 @@ class MMLoRAT_DINOv2(nn.Module):
     def _fusion(self, z_feat_v: torch.Tensor, x_feat_v: torch.Tensor, z_feat_i: torch.Tensor, x_feat_i: torch.Tensor,
                 d_feat_v: torch.Tensor = None, d_feat_i: torch.Tensor = None):
         if self.enable_online_template:
-            fusion_feat = torch.cat((z_feat_v, x_feat_v, z_feat_i, x_feat_i, d_feat_v, d_feat_i), dim=1)
+            fusion_feat = torch.cat((z_feat_v, d_feat_v, x_feat_v, z_feat_i, d_feat_i, x_feat_i), dim=1)
         else:
             fusion_feat = torch.cat((z_feat_v, x_feat_v, z_feat_i, x_feat_i), dim=1)
 
         for i in range(len(self.blocks)):
             fusion_feat = self.blocks[i](fusion_feat)
         fusion_feat = self.norm(fusion_feat)
-        return fusion_feat[:, 2 * z_feat_v.shape[1] + x_feat_v.shape[1]:2 * (z_feat_v.shape[1] + x_feat_v.shape[1]), :]
+
+        return fusion_feat[:, -x_feat_v.shape[1]:, :]
 
     def state_dict(self, **kwargs):
         state_dict = super().state_dict(**kwargs)
