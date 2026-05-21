@@ -2,15 +2,16 @@
 # Licensed under Apache-2.0: http://www.apache.org/licenses/LICENSE-2.0
 # Add support for RGB-T dataset
 
+from collections import OrderedDict
 from typing import Tuple, Mapping, Any
 
 import torch
 import torch.nn as nn
-from collections import OrderedDict
 from timm.models.layers import trunc_normal_
 from trackit.models.backbone.dinov2 import DinoVisionTransformer, interpolate_pos_encoding
 from .modules.patch_embed import PatchEmbedNoSizeCheck
 from .modules.lora.apply import find_all_frozen_nn_linear_names, apply_lora
+from .modules.lora.merge import lora_merge_state_dict
 from .modules.head.mlp import MlpAnchorFreeHead
 
 
@@ -19,7 +20,8 @@ class MMLoRAT_DINOv2(nn.Module):
                  template_feat_size: Tuple[int, int],
                  search_region_feat_size: Tuple[int, int],
                  lora_r: int, lora_alpha: float, lora_dropout: float, use_rslora: bool = False,
-                 enable_online_template: bool = True):
+                 enable_online_template: bool = True,
+                 optimize_for_inference: bool = False):
         super().__init__()
         assert template_feat_size[0] <= search_region_feat_size[0] and template_feat_size[1] <= search_region_feat_size[
             1]
@@ -40,17 +42,19 @@ class MMLoRAT_DINOv2(nn.Module):
 
         self.lora_alpha = lora_alpha
         self.use_rslora = use_rslora
-
         self.enable_online_template = enable_online_template
+        self.optimize_for_inference = optimize_for_inference
 
-        for param in self.parameters():
-            param.requires_grad = False
+        if not self.optimize_for_inference:
+            for param in self.parameters():
+                param.requires_grad = False
 
         self._init_token_type_embed()
 
-        for i_layer, block in enumerate(self.blocks):
-            linear_names = find_all_frozen_nn_linear_names(block)
-            apply_lora(block, linear_names, lora_r, lora_alpha, lora_dropout, use_rslora)
+        if not self.optimize_for_inference:
+            for block in self.blocks:
+                linear_names = find_all_frozen_nn_linear_names(block)
+                apply_lora(block, linear_names, lora_r, lora_alpha, lora_dropout, use_rslora)
 
         self.head = MlpAnchorFreeHead(self.embed_dim, self.x_size)
 
@@ -127,17 +131,26 @@ class MMLoRAT_DINOv2(nn.Module):
 
     def state_dict(self, **kwargs):
         state_dict = super().state_dict(**kwargs)
+        if self.optimize_for_inference:
+            return state_dict
+
         prefix = kwargs.get('prefix', '')
         for key in list(state_dict.keys()):
-            if not self.get_parameter(key[len(prefix):]).requires_grad:
-                state_dict.pop(key)
+            parameter_name = key[len(prefix):]
+            try:
+                if not self.get_parameter(parameter_name).requires_grad:
+                    state_dict.pop(key)
+            except AttributeError:
+                continue
         if self.lora_alpha != 1.:
             state_dict[prefix + 'lora_alpha'] = torch.as_tensor(self.lora_alpha)
             state_dict[prefix + 'use_rslora'] = torch.as_tensor(self.use_rslora)
         return state_dict
 
     def load_state_dict(self, state_dict: Mapping[str, Any], **kwargs):
-        if 'lora_alpha' in state_dict:
+        if self.optimize_for_inference:
+            state_dict = lora_merge_state_dict(self, state_dict)
+        elif 'lora_alpha' in state_dict:
             state_dict = OrderedDict(**state_dict)
             self.lora_alpha = state_dict['lora_alpha'].item()
             self.use_rslora = state_dict['use_rslora'].item()

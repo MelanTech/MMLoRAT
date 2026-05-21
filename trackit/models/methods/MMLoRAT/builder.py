@@ -18,36 +18,25 @@ def build_MMLoRAT_model(config: dict, model_impl_suggestions: ModelImplSuggestio
                               torch_jit_trace_compatible=model_impl_suggestions.torch_jit_trace_compatible)
     model_type = model_config['type']
     if model_type == 'dinov2':
-        if model_impl_suggestions.optimize_for_inference:
-            from .mmlorat_full_finetune import MMLoRATBaseline_DINOv2
-            model = MMLoRATBaseline_DINOv2(backbone, common_config['template_feat_size'],
-                                           common_config['search_region_feat_size'],
-                                           common_config['enable_online_template'])
-        else:
-            from .mmlorat import MMLoRAT_DINOv2
-            model = MMLoRAT_DINOv2(backbone, common_config['template_feat_size'],
-                                   common_config['search_region_feat_size'],
-                                   model_config['lora']['r'], model_config['lora']['alpha'],
-                                   model_config['lora']['dropout'], model_config['lora']['use_rslora'],
-                                   common_config['enable_online_template'])
-
-    elif model_type == 'dinov2_full_finetune':
-        from .mmlorat_full_finetune import MMLoRATBaseline_DINOv2
-        model = MMLoRATBaseline_DINOv2(backbone, common_config['template_feat_size'],
-                                       common_config['search_region_feat_size'],
-                                       common_config['enable_online_template'])
+        from .mmlorat import MMLoRAT_DINOv2
+        model = MMLoRAT_DINOv2(backbone, common_config['template_feat_size'],
+                               common_config['search_region_feat_size'],
+                               model_config['lora']['r'], model_config['lora']['alpha'],
+                               model_config['lora']['dropout'], model_config['lora']['use_rslora'],
+                               common_config['enable_online_template'],
+                               model_impl_suggestions.optimize_for_inference)
     else:
         raise NotImplementedError(f"Model type '{model_type}' is not supported.")
     return model
 
 
 def get_MMLoRAT_build_string(model_type: str, model_impl_suggestions: ModelImplSuggestions):
+    if model_type != 'dinov2':
+        raise NotImplementedError(f"Model type '{model_type}' is not supported.")
+
     build_string = 'MMLoRAT'
-    if 'full_finetune' in model_type:
-        build_string += '_full_finetune'
-    else:
-        if model_impl_suggestions.optimize_for_inference:
-            build_string += '_merged'
+    if model_impl_suggestions.optimize_for_inference:
+        build_string += '_merged'
     if model_impl_suggestions.torch_jit_trace_compatible:
         build_string += '_disable_flash_attn'
     return build_string
