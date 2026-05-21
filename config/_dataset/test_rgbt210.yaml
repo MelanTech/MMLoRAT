@@ -5,5 +5,5 @@ filters:
       bounding_box_coordinate_system: "Continuous"
 
 datasets:
-  - name: "RGBT234"
+  - name: "RGBT210"
     type: "MMOT"
